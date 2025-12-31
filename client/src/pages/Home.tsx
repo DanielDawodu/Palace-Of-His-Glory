@@ -41,7 +41,7 @@ export default function Home() {
             <p className="text-xl md:text-2xl text-gray-200 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
               Raising a generation of champions who enforce the kingdom of God on earth through power, purpose, and purity.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/about">
                 <Button size="lg" className="bg-secondary text-primary hover:bg-white hover:text-primary font-bold text-lg px-8 py-6 rounded-full">
@@ -58,7 +58,7 @@ export default function Home() {
         </div>
 
         {/* Scroll Indicator */}
-        <motion.div 
+        <motion.div
           className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70"
           animate={{ y: [0, 10, 0] }}
           transition={{ repeat: Infinity, duration: 1.5 }}
@@ -73,32 +73,32 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <SectionHeader 
-                title="Welcome to the Family of Glory" 
-                subtitle="About Our Church" 
-                centered={false} 
+              <SectionHeader
+                title="Welcome to the Family of Glory"
+                subtitle="About Our Church"
+                centered={false}
               />
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                At Palace of His Glory, we believe that every individual has a divine destiny to fulfill. 
-                We are a family-oriented ministry dedicated to teaching the undiluted word of God 
+                At Palace of His Glory, we believe that every individual has a divine destiny to fulfill.
+                We are a family-oriented ministry dedicated to teaching the undiluted word of God
                 and demonstrating His power in our generation.
               </p>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Whether you are joining us for the first time or returning, we want you to know 
+                Whether you are joining us for the first time or returning, we want you to know
                 that God has a special plan for your life. Come and experience His glory!
               </p>
               <Link href="/about">
                 <Button className="group bg-primary text-white hover:bg-primary/90">
-                  Read More About Us 
+                  Read More About Us
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
             </div>
             <div className="relative">
               <div className="absolute -inset-4 bg-secondary/20 rounded-2xl transform rotate-3" />
-              <img 
-                src="https://images.unsplash.com/photo-1544427920-c49ccfb85579?q=80&w=1548&auto=format&fit=crop" 
-                alt="Worship Service" 
+              <img
+                src="https://images.unsplash.com/photo-1544427920-c49ccfb85579?q=80&w=1548&auto=format&fit=crop"
+                alt="Worship Service"
                 className="relative rounded-xl shadow-2xl w-full h-auto aspect-[4/3] object-cover"
               />
             </div>
@@ -111,14 +111,14 @@ export default function Home() {
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <SectionHeader title="Join Us This Week" subtitle="Service Times" light={true} />
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { day: "Sunday", title: "Celebration Service", time: "9:00 AM", icon: Calendar },
-              { day: "Wednesday", title: "Bible Study", time: "6:00 PM", icon: Clock },
-              { day: "Friday (Last)", title: "Prophetic Vigil", time: "11:00 PM", icon: MapPin },
+              { day: "Tuesday", title: "Bible Study", time: "5:30 PM", icon: Clock },
+              { day: "Wednesday", title: "Hour Of Glorification", time: "5:30 PM", icon: MapPin },
             ].map((service, idx) => (
-              <motion.div 
+              <motion.div
                 key={idx}
                 whileHover={{ y: -5 }}
                 className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 text-center hover:bg-white/10 transition-colors"
@@ -139,7 +139,7 @@ export default function Home() {
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader title="Upcoming Events" subtitle="Mark Your Calendar" />
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {upcomingEvents.length > 0 ? (
               upcomingEvents.map((event) => (
@@ -147,9 +147,9 @@ export default function Home() {
                   <div className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all h-full flex flex-col cursor-pointer">
                     <div className="relative h-48 overflow-hidden bg-primary/10">
                       {event.imageUrl ? (
-                        <img 
-                          src={event.imageUrl} 
-                          alt={event.title} 
+                        <img
+                          src={event.imageUrl}
+                          alt={event.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
@@ -177,7 +177,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          
+
           <div className="text-center mt-12">
             <Link href="/events">
               <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-white">
@@ -192,19 +192,19 @@ export default function Home() {
       <section className="py-20 bg-primary relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 z-0"></div>
         <div className="absolute top-0 right-0 w-1/2 h-full opacity-10">
-          <img 
-            src="https://pixabay.com/get/gc80cbfe23e420b13e3e34298e16f968c6ebe92455f2dd9d3dbd01cd3b4629a12119fb3b3ed0b30e651b540e17b18869cc81ed4beb4083fe0e2920a145e476b2f_1280.jpg" 
-            alt="Prayer" 
+          <img
+            src="https://pixabay.com/get/gc80cbfe23e420b13e3e34298e16f968c6ebe92455f2dd9d3dbd01cd3b4629a12119fb3b3ed0b30e651b540e17b18869cc81ed4beb4083fe0e2920a145e476b2f_1280.jpg"
+            alt="Prayer"
             className="w-full h-full object-cover"
           />
         </div>
-        
+
         <div className="max-w-5xl mx-auto px-4 relative z-10 text-center">
           <h2 className="font-display text-4xl md:text-5xl font-bold text-white mb-6">
             Need Prayer or Counseling?
           </h2>
           <p className="text-xl text-gray-200 mb-10 max-w-2xl mx-auto">
-            Our pastors and ministers are available to stand with you in prayer. 
+            Our pastors and ministers are available to stand with you in prayer.
             God answers prayers, and He cares about your situation.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

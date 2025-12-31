@@ -27,13 +27,13 @@ export async function registerRoutes(
   app.post(api.auth.login.path, async (req, res) => {
     const { username, password } = req.body;
     const user = await storage.getUserByUsername(username);
-    
+
     // Simple password check for lite prototype (should use hashing in prod)
     if (user && user.password === password) {
       (req.session as any).userId = user.id;
       return res.json({ message: "Login successful" });
     }
-    
+
     res.status(401).json({ message: "Invalid credentials" });
   });
 
@@ -126,9 +126,9 @@ export async function registerRoutes(
   });
 
   app.post(api.comments.create.path, async (req, res) => {
-    const comment = await storage.createComment({ 
-      ...req.body, 
-      eventId: parseInt(req.params.eventId) 
+    const comment = await storage.createComment({
+      ...req.body,
+      eventId: parseInt(req.params.eventId)
     });
     res.status(201).json(comment);
   });
@@ -152,22 +152,39 @@ async function seedDatabase() {
   const existingStaff = await storage.getStaff();
   if (existingStaff.length === 0) {
     await storage.createStaff({
-      name: "Rev. Dr. Olusola Areogun",
-      role: "Lead Pastor",
+      name: "Pastor Bright Oluwole",
+      role: "Lead Pastor and General Overseer",
       category: "pastor",
       isLead: true,
-      bio: "General Overseer of Palace of His Glory International Ministries."
+      bio: "Pastor Bright Oluwole is the visionary leader and General Overseer of Palace of His Glory International Ministries. A charismatic and dynamic preacher, he is known for his honest and transparent approach to ministry. With a heart ablaze for God and a passion for souls, he has dedicated his life to teaching the undiluted Word of God with clarity and power. His ministry is marked by a strong emphasis on prayer, worship, and raising believers to walk in their God-given purpose and destiny. Pastor Bright's authentic leadership style and commitment to truth have made him a trusted spiritual guide to many.",
+      imageUrl: "/pastor-bright.jpg"
     });
     await storage.createStaff({
-      name: "Pastor Mrs. Ojeleye",
+      name: "Pastor Oluwakemi Adesanya",
       role: "Associate Pastor",
       category: "pastor",
-      isLead: false
+      isLead: false,
+      imageUrl: "/pastor-oluwakemi.jpg"
+    });
+    await storage.createStaff({
+      name: "Pastor  Adewale Olusanwo",
+      role: "Associate Pastor",
+      category: "pastor",
+      isLead: false,
+      imageUrl: "/pastor-adewale.jpg"
     });
   }
 
   const existingProgrammes = await storage.getProgrammes();
   if (existingProgrammes.length === 0) {
+    await storage.createProgramme({
+      title: "Sunday School",
+      description: "Join us for a time of worship and word.",
+      type: "weekly",
+      day: "Sunday",
+      time: "8:00 AM",
+      location: "Main Auditorium"
+    });
     await storage.createProgramme({
       title: "Sunday Service",
       description: "Join us for a time of worship and word.",
@@ -180,6 +197,14 @@ async function seedDatabase() {
       title: "Bible Study",
       description: "Digging deep into the scriptures.",
       type: "weekly",
+      day: "Tuesday",
+      time: "5:30 PM",
+      location: "Main Auditorium"
+    });
+    await storage.createProgramme({
+      title: "Hour Of Glorification",
+      description: "Revival Sessions.",
+      type: "weekly",
       day: "Wednesday",
       time: "5:00 PM",
       location: "Main Auditorium"
@@ -190,8 +215,8 @@ async function seedDatabase() {
   if (existingDepartments.length === 0) {
     await storage.createDepartment({
       name: "Choir Department",
-      leader: "Bro. David",
-      description: "Leading the congregation in worship."
+      leader: "Sis. Adebisi",
+      description: "Leading the congregation in worship.",
     });
     await storage.createDepartment({
       name: "Ushers Department",

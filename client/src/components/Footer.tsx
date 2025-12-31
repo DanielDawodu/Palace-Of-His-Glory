@@ -17,7 +17,7 @@ export function Footer() {
                 />
               </div>
               <span className="font-display text-xl font-bold leading-none text-secondary">
-                Palace of Glory<br/>
+                Palace of Glory<br />
                 <span className="text-sm font-sans text-white/80 font-normal">International Ministries</span>
               </span>
             </div>
@@ -51,12 +51,12 @@ export function Footer() {
                 <span className="text-white font-medium">9:00 AM</span>
               </li>
               <li className="flex justify-between">
-                <span>Bible Study (Wed)</span>
-                <span className="text-white font-medium">6:00 PM</span>
+                <span>Bible Study (Tue)</span>
+                <span className="text-white font-medium">5:30 PM</span>
               </li>
               <li className="flex justify-between">
-                <span>Vigil (Last Fri)</span>
-                <span className="text-white font-medium">11:00 PM</span>
+                <span>Hour Of Glorification (Wed)</span>
+                <span className="text-white font-medium">5:30 PM</span>
               </li>
             </ul>
           </div>
