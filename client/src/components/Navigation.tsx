@@ -33,32 +33,34 @@ export function Navigation() {
 
   return (
     <nav
-      className={`fixed w-full z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-white/95 backdrop-blur-md shadow-md py-2"
-          : "bg-transparent py-4 md:py-6"
-      }`}
+      className={`fixed w-full z-50 transition-all duration-300 ${scrolled
+        ? "bg-white/95 backdrop-blur-md shadow-md py-3"
+        : "bg-transparent py-6 md:py-8"
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           {/* Logo Section */}
-          <Link href="/" className="flex items-center space-x-3 cursor-pointer">
-            <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-primary/20 bg-white">
+          <Link href="/" className="flex flex-col items-center cursor-pointer group">
+            <div className={`relative transition-all duration-300 overflow-hidden rounded-full border-[4px] shadow-2xl group-hover:scale-105 ${scrolled
+              ? "h-14 w-14 border-primary"
+              : "h-24 w-24 md:h-32 md:w-32 border-white"
+              } bg-white`}>
               <img
                 src="/logo.jpeg"
                 alt="Palace of Glory"
                 className="h-full w-full object-cover"
                 onError={(e) => {
-                  // Fallback if logo doesn't load
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.parentElement!.innerHTML = '<div class="flex h-full w-full items-center justify-center bg-primary text-xs font-bold text-white">PG</div>';
+                  e.currentTarget.parentElement!.innerHTML = '<div class="flex h-full w-full items-center justify-center bg-primary text-sm font-bold text-white">PG</div>';
                 }}
               />
             </div>
             <span
-              className={`font-display text-xl md:text-2xl font-bold leading-tight ${
-                scrolled || location !== "/" ? "text-primary" : "text-white"
-              } transition-colors`}
+              className={`font-display font-black uppercase tracking-tight text-center transition-all duration-300 ${scrolled
+                ? "text-[10px] mt-1 text-primary"
+                : "text-lg md:text-2xl mt-3 " + (location === "/" ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" : "text-primary")
+                }`}
             >
               Palace of Glory
             </span>
@@ -70,13 +72,12 @@ export function Navigation() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`text-sm font-medium uppercase tracking-wider transition-colors hover:text-secondary ${
-                  location === link.href
-                    ? "text-secondary font-bold"
-                    : scrolled || location !== "/"
+                className={`text-sm font-medium uppercase tracking-wider transition-colors hover:text-secondary ${location === link.href
+                  ? "text-secondary font-bold"
+                  : scrolled || location !== "/"
                     ? "text-gray-700"
                     : "text-white/90"
-                }`}
+                  }`}
               >
                 {link.name}
               </Link>
@@ -90,8 +91,8 @@ export function Navigation() {
                   <ShieldCheck className="w-4 h-4" />
                   Dashboard
                 </Link>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => logout.mutate()}
                   className="border-primary text-primary hover:bg-primary hover:text-white"
@@ -100,25 +101,14 @@ export function Navigation() {
                 </Button>
               </div>
             )}
-            {!user && location !== "/login" && (
-              <Link href="/login">
-                <Button 
-                  size="sm"
-                  className="bg-secondary text-primary hover:bg-secondary/90 font-bold"
-                >
-                  Member Login
-                </Button>
-              </Link>
-            )}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`p-2 rounded-md ${
-                scrolled || location !== "/" ? "text-gray-800" : "text-white"
-              }`}
+              className={`p-2 rounded-md ${scrolled || location !== "/" ? "text-gray-800" : "text-white"
+                }`}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -135,22 +125,17 @@ export function Navigation() {
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className={`text-lg font-medium ${
-                  location === link.href ? "text-primary font-bold" : "text-gray-600"
-                }`}
+                className={`text-lg font-medium ${location === link.href ? "text-primary font-bold" : "text-gray-600"
+                  }`}
               >
                 {link.name}
               </Link>
             ))}
-            {user ? (
-               <div className="flex flex-col items-center gap-4 w-full pt-4 border-t border-gray-100">
-                 <Link href="/admin" onClick={() => setIsOpen(false)} className="text-primary font-bold">Admin Dashboard</Link>
-                 <Button onClick={() => logout.mutate()} variant="outline" className="w-full">Logout</Button>
-               </div>
-            ) : (
-              <Link href="/login" onClick={() => setIsOpen(false)} className="w-full">
-                <Button className="w-full bg-primary text-white">Login</Button>
-              </Link>
+            {user && (
+              <div className="flex flex-col items-center gap-4 w-full pt-4 border-t border-gray-100">
+                <Link href="/admin" onClick={() => setIsOpen(false)} className="text-primary font-bold">Admin Dashboard</Link>
+                <Button onClick={() => logout.mutate()} variant="outline" className="w-full">Logout</Button>
+              </div>
             )}
           </div>
         </div>

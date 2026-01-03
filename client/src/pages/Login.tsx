@@ -31,7 +31,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 pt-32">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
@@ -47,7 +47,7 @@ export default function Login() {
             <Input {...register("username")} disabled={login.isPending} />
             {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <Input type="password" {...register("password")} disabled={login.isPending} />

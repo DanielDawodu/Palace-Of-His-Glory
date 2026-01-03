@@ -10,10 +10,10 @@ export default function Programmes() {
   const specialProgrammes = programmes?.filter(p => p.type === 'special') || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-16">
+    <div className="min-h-screen bg-gray-50 pt-48 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader title="Our Programmes" subtitle="Gathering of Saints" />
-        
+
         <Tabs defaultValue="weekly" className="w-full">
           <div className="flex justify-center mb-12">
             <TabsList className="bg-white p-1 rounded-full shadow-sm border border-gray-200">
@@ -71,15 +71,16 @@ export default function Programmes() {
                       <p className="text-gray-600 mb-6 text-sm leading-relaxed">
                         {prog.description}
                       </p>
-                      <div className="space-y-2 pt-6 border-t border-gray-100 text-sm">
-                         <div className="flex justify-between">
-                           <span className="text-gray-500">When:</span>
-                           <span className="font-medium">{prog.day} @ {prog.time}</span>
-                         </div>
-                         <div className="flex justify-between">
-                           <span className="text-gray-500">Where:</span>
-                           <span className="font-medium">{prog.location || "Auditorium"}</span>
-                         </div>
+                      <div className="space-y-4 pt-6 border-t border-gray-100 text-sm">
+                        <div>
+                          <p className="text-gray-500 mb-1 font-bold uppercase text-[10px] tracking-widest">When</p>
+                          <p className="font-medium text-gray-900">{prog.day}</p>
+                          <p className="text-primary font-bold">{prog.time}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 mb-1 font-bold uppercase text-[10px] tracking-widest">Where</p>
+                          <p className="font-medium text-gray-900">{prog.location || "Auditorium"}</p>
+                        </div>
                       </div>
                     </div>
                   </div>

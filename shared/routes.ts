@@ -1,16 +1,18 @@
 import { z } from 'zod';
-import { 
-  insertUserSchema, 
-  insertEventSchema, 
-  insertProgrammeSchema, 
-  insertStaffSchema, 
+import {
+  insertUserSchema,
+  insertEventSchema,
+  insertProgrammeSchema,
+  insertStaffSchema,
   insertDepartmentSchema,
   insertCommentSchema,
+  insertRegistrationSchema,
   events,
   programmes,
   staff,
   departments,
-  comments
+  comments,
+  registrations
 } from './schema';
 
 export const errorSchemas = {
@@ -155,6 +157,24 @@ export const api = {
       input: insertCommentSchema.omit({ eventId: true }),
       responses: {
         201: z.custom<typeof comments.$inferSelect>(),
+      },
+    }
+  },
+  registrations: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/registrations',
+      responses: {
+        200: z.array(z.custom<typeof registrations.$inferSelect>()),
+        401: errorSchemas.unauthorized,
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/registrations',
+      input: insertRegistrationSchema,
+      responses: {
+        201: z.custom<typeof registrations.$inferSelect>(),
       },
     }
   }

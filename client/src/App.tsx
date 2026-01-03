@@ -13,6 +13,7 @@ import Events from "@/pages/Events";
 import Contact from "@/pages/Contact";
 import Login from "@/pages/Login";
 import Admin from "@/pages/Admin";
+import NewMember from "@/pages/NewMember";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
           <Route path="/contact" component={Contact} />
           <Route path="/login" component={Login} />
           <Route path="/admin" component={Admin} />
+          <Route path="/new-member" component={NewMember} />
           <Route component={NotFound} />
         </Switch>
       </main>

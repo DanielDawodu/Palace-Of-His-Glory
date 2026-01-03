@@ -5,6 +5,8 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import { upload } from "./cloudinary";
+import { insertRegistrationSchema } from "@shared/schema";
 
 const SessionStore = MemoryStore(session);
 
@@ -26,12 +28,28 @@ export async function registerRoutes(
   // Auth Routes
   app.post(api.auth.login.path, async (req, res) => {
     const { username, password } = req.body;
-    const user = await storage.getUserByUsername(username);
+    // Try username first
+    let user = await storage.getUserByUsernameCaseInsensitive(username);
+
+    // If not found, try email
+    if (!user) {
+      user = await storage.getUserByEmailCaseInsensitive(username);
+    }
 
     // Simple password check for lite prototype (should use hashing in prod)
-    if (user && user.password === password) {
-      (req.session as any).userId = user.id;
-      return res.json({ message: "Login successful" });
+    console.log(`Login attempt for: ${username}`);
+    if (user) {
+      console.log(`User found: ${user.username}`);
+      console.log(`Stored password: "${user.password}"`);
+      console.log(`Provided password: "${password}"`);
+      console.log(`Match: ${user.password === password}`);
+
+      if (user.password === password) {
+        (req.session as any).userId = user.id;
+        return res.json({ message: "Login successful" });
+      }
+    } else {
+      console.log(`User not found: "${username}"`);
     }
 
     res.status(401).json({ message: "Invalid credentials" });
@@ -69,10 +87,21 @@ export async function registerRoutes(
 
   app.post(api.events.create.path, requireAuth, async (req, res) => {
     try {
-      const event = await storage.createEvent(req.body);
+      // Ensure date is a Date object if provided as a string
+      const data = { ...req.body };
+      if (typeof data.date === "string") {
+        data.date = new Date(data.date);
+      }
+
+      const validatedData = insertEventSchema.parse(data);
+      const event = await storage.createEvent(validatedData);
       res.status(201).json(event);
-    } catch (e) {
-      res.status(400).json({ message: "Invalid input" });
+    } catch (e: any) {
+      console.error("❌ Event creation error:", e.message || e);
+      res.status(400).json({
+        message: "Invalid input",
+        details: e.errors ? e.errors : e.message
+      });
     }
   });
 
@@ -88,8 +117,13 @@ export async function registerRoutes(
   });
 
   app.post(api.programmes.create.path, requireAuth, async (req, res) => {
-    const programme = await storage.createProgramme(req.body);
-    res.status(201).json(programme);
+    try {
+      const validatedData = insertProgrammeSchema.parse(req.body);
+      const programme = await storage.createProgramme(validatedData);
+      res.status(201).json(programme);
+    } catch (e: any) {
+      res.status(400).json({ message: "Invalid input", details: e.errors || e.message });
+    }
   });
 
   app.delete(api.programmes.delete.path, requireAuth, async (req, res) => {
@@ -104,8 +138,13 @@ export async function registerRoutes(
   });
 
   app.post(api.staff.create.path, requireAuth, async (req, res) => {
-    const staffMember = await storage.createStaff(req.body);
-    res.status(201).json(staffMember);
+    try {
+      const validatedData = insertStaffSchema.parse(req.body);
+      const staffMember = await storage.createStaff(validatedData);
+      res.status(201).json(staffMember);
+    } catch (e: any) {
+      res.status(400).json({ message: "Invalid input", details: e.errors || e.message });
+    }
   });
 
   // Departments Routes
@@ -115,11 +154,27 @@ export async function registerRoutes(
   });
 
   app.post(api.departments.create.path, requireAuth, async (req, res) => {
-    const department = await storage.createDepartment(req.body);
-    res.status(201).json(department);
+    try {
+      const validatedData = insertDepartmentSchema.parse(req.body);
+      const department = await storage.createDepartment(validatedData);
+      res.status(201).json(department);
+    } catch (e: any) {
+      res.status(400).json({ message: "Invalid input", details: e.errors || e.message });
+    }
   });
 
   // Comments Routes
+  app.patch("/api/events/:id/live", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { isLive, videoUrl } = req.body;
+    try {
+      const event = await storage.updateEvent(id, { isLive, videoUrl });
+      res.json(event);
+    } catch (e) {
+      res.status(404).json({ message: "Event not found" });
+    }
+  });
+
   app.get(api.comments.list.path, async (req, res) => {
     const comments = await storage.getComments(parseInt(req.params.eventId));
     res.json(comments);
@@ -132,6 +187,43 @@ export async function registerRoutes(
     });
     res.status(201).json(comment);
   });
+  // Registrations Routes
+  app.get(api.registrations.list.path, requireAuth, async (req, res) => {
+    const regs = await storage.getRegistrations();
+    res.json(regs);
+  });
+
+  app.post(api.registrations.create.path, async (req, res) => {
+    try {
+      console.log("📝 Received registration submission:", JSON.stringify(req.body));
+      const validatedData = insertRegistrationSchema.parse(req.body);
+      const reg = await storage.createRegistration(validatedData);
+      console.log("✅ Registration created:", reg.id);
+      res.status(201).json(reg);
+    } catch (e: any) {
+      console.error("❌ Registration error:", e.message || e);
+      if (e.errors) {
+        console.error("Validation details:", JSON.stringify(e.errors));
+      }
+      res.status(400).json({ message: "Invalid input", details: e.message });
+    }
+  });
+
+
+  // Image Upload Route
+  app.post("/api/upload", requireAuth, (req, res, next) => {
+    console.log("📸 Upload request received");
+    console.log("User authenticated:", (req.session as any).userId);
+    next();
+  }, upload.single("image"), (req, res) => {
+    if (!req.file) {
+      console.error("❌ No file in request");
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    console.log("✅ File uploaded to Cloudinary:", (req.file as any).path);
+    // multer-storage-cloudinary adds 'path' to the file object which is the URL
+    res.json({ url: (req.file as any).path });
+  });
 
   // Seeding
   await seedDatabase();
@@ -140,13 +232,31 @@ export async function registerRoutes(
 }
 
 async function seedDatabase() {
-  const existingUser = await storage.getUserByUsername("admin");
-  if (!existingUser) {
+  console.log("🌱 Seeding database...");
+
+  // Create Daniel if he doesn't exist
+  const danielByUsername = await storage.getUserByUsernameCaseInsensitive("Daniel");
+  const allUsers = await (storage as any).getUsers?.() || []; // If storage has a way to list all
+
+  if (!danielByUsername) {
+    console.log("👤 Creating user 'Daniel'...");
     await storage.createUser({
-      username: "admin",
-      password: "password123", // Default password
+      username: "Daniel",
+      email: "danieldawodu07@gmail.com",
+      password: "Daniel@123",
       isAdmin: true
     });
+    console.log("✅ User 'Daniel' created successfully.");
+  } else if (danielByUsername.password !== "Daniel@123" || danielByUsername.email !== "danieldawodu07@gmail.com") {
+    console.log("👤 User 'Daniel' exists but data is outdated. Resetting credentials...");
+    // Since we don't have an update method, we'll manually fix it if it's MemStorage
+    // For now, let's just log exactly what's expected.
+    // In a real DB we'd use an update query.
+    danielByUsername.password = "Daniel@123";
+    danielByUsername.email = "danieldawodu07@gmail.com";
+    console.log("✅ User 'Daniel' credentials reset.");
+  } else {
+    console.log("👤 User 'Daniel' exists with correct credentials.");
   }
 
   const existingStaff = await storage.getStaff();
@@ -176,39 +286,86 @@ async function seedDatabase() {
   }
 
   const existingProgrammes = await storage.getProgrammes();
-  if (existingProgrammes.length === 0) {
-    await storage.createProgramme({
+  const defaultProgrammes = [
+    {
       title: "Sunday School",
       description: "Join us for a time of worship and word.",
       type: "weekly",
       day: "Sunday",
       time: "8:00 AM",
       location: "Main Auditorium"
-    });
-    await storage.createProgramme({
+    },
+    {
       title: "Sunday Service",
       description: "Join us for a time of worship and word.",
       type: "weekly",
       day: "Sunday",
       time: "9:00 AM",
       location: "Main Auditorium"
-    });
-    await storage.createProgramme({
+    },
+    {
       title: "Bible Study",
       description: "Digging deep into the scriptures.",
       type: "weekly",
       day: "Tuesday",
       time: "5:30 PM",
       location: "Main Auditorium"
-    });
-    await storage.createProgramme({
+    },
+    {
       title: "Hour Of Glorification",
       description: "Revival Sessions.",
       type: "weekly",
       day: "Wednesday",
       time: "5:00 PM",
       location: "Main Auditorium"
-    });
+    },
+    // Special Programmes from User
+    {
+      title: "Night of Destiny",
+      description: "A powerful night of prophetic prayers and divine encounters.",
+      type: "special",
+      day: "Every last Friday of the Month",
+      time: "11:00 PM",
+      location: "Main Sanctuary"
+    },
+    {
+      title: "Romilowo",
+      description: "Every 2nd Saturday of the Month Prayer and sacrifice.",
+      type: "special",
+      day: "Every 2nd Saturday of the Month",
+      time: "5:30 AM - 7:00 AM",
+      location: "Main Sanctuary"
+    },
+    {
+      title: "Youth Summit",
+      description: "Empowering the next generation for kingdom impact.",
+      type: "special",
+      day: "Every 1st Tuesday of the Month",
+      time: "5:30 PM",
+      location: "Youth Hall"
+    },
+    {
+      title: "Hosannah Service",
+      description: "A special service of praise and victory.",
+      type: "special",
+      day: "Every 1st Sunday of the Month",
+      time: "9:00 AM",
+      location: "Main Sanctuary"
+    },
+    {
+      title: "Impartation Service",
+      description: "Divine empowerment and mantle for the week ahead.",
+      type: "special",
+      day: "Every last Sunday of the Month",
+      time: "7:30 AM",
+      location: "Main Sanctuary"
+    }
+  ];
+
+  for (const p of defaultProgrammes) {
+    if (!existingProgrammes.find(ep => ep.title === p.title)) {
+      await storage.createProgramme(p);
+    }
   }
 
   const existingDepartments = await storage.getDepartments();

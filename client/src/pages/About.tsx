@@ -12,7 +12,7 @@ export default function About() {
   const leadership = staffList?.filter(s => s.category !== 'pastor') || [];
 
   return (
-    <div className="min-h-screen bg-white pt-24 pb-16">
+    <div className="min-h-screen bg-white pt-48 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* HERO */}
@@ -59,13 +59,13 @@ export default function About() {
           <SectionHeader title="Meet Our Pastors" subtitle="Leadership" />
 
           {leadPastor ? (
-            <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 flex flex-col md:flex-row mb-12">
+            <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 flex flex-col md:flex-row-reverse mb-12">
               <div className="md:w-1/3 h-96 md:h-auto relative bg-gray-200">
                 {leadPastor.imageUrl ? (
                   <img
                     src={leadPastor.imageUrl}
                     alt={leadPastor.name}
-                    className="w-full h-full object-cover object-top"
+                    className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-300">
@@ -74,9 +74,9 @@ export default function About() {
                 )}
               </div>
               <div className="md:w-2/3 p-8 md:p-12 flex flex-col justify-center">
-                <span className="text-secondary font-bold uppercase tracking-wide text-sm mb-2">Lead Pastor</span>
-                <h3 className="font-display text-4xl font-bold mb-4 text-primary">{leadPastor.name}</h3>
-                <p className="text-gray-600 text-lg leading-relaxed">
+                <span className="text-secondary font-bold uppercase tracking-wide text-sm mb-2 text-right md:text-left">Lead Pastor</span>
+                <h3 className="font-display text-4xl font-bold mb-4 text-primary text-right md:text-left">{leadPastor.name}</h3>
+                <p className="text-gray-600 text-lg leading-relaxed text-right md:text-left">
                   {leadPastor.bio || "A visionary leader with a heart for God and people. Committed to teaching the word of God with clarity and power."}
                 </p>
               </div>
@@ -92,9 +92,13 @@ export default function About() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
               {otherPastors.map(pastor => (
                 <div key={pastor.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow">
-                  <div className="h-96 bg-gray-200 relative">
+                  <div className="h-[450px] bg-gray-200 relative">
                     {pastor.imageUrl ? (
-                      <img src={pastor.imageUrl} alt={pastor.name} className="w-full h-full object-cover object-top" />
+                      <img
+                        src={pastor.imageUrl}
+                        alt={pastor.name}
+                        className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gray-100">
                         <Users className="w-12 h-12 text-gray-400" />

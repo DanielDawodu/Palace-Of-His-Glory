@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
-import type { 
-  InsertEvent, InsertProgramme, InsertStaff, InsertDepartment, InsertComment 
+import type {
+  InsertEvent, InsertProgramme, InsertStaff, InsertDepartment, InsertComment
 } from "@shared/schema";
 
 // --- EVENTS ---
@@ -29,6 +29,22 @@ export function useCreateEvent() {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to create event");
+      return await res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.events.list.path] }),
+  });
+}
+
+export function useUpdateEventLive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isLive, videoUrl }: { id: number, isLive: boolean, videoUrl?: string }) => {
+      const res = await fetch(`/api/events/${id}/live`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isLive, videoUrl }),
+      });
+      if (!res.ok) throw new Error("Failed to update live status");
       return await res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.events.list.path] }),
@@ -176,9 +192,22 @@ export function useCreateComment() {
     onSuccess: (_, variables) => {
       const eventId = variables.eventId;
       // Invalidate the specific event's comments
-      queryClient.invalidateQueries({ 
-        queryKey: [api.comments.list.path, eventId] 
+      queryClient.invalidateQueries({
+        queryKey: [api.comments.list.path, eventId]
       });
+    },
+  });
+}
+
+// --- REGISTRATIONS ---
+export function useRegistrations() {
+  return useQuery({
+    queryKey: [api.registrations.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.registrations.list.path);
+      if (!res.ok) throw new Error("Failed to fetch registrations");
+      const data = await res.json();
+      return api.registrations.list.responses[200].parse(data);
     },
   });
 }

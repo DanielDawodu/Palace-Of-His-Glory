@@ -8,11 +8,35 @@ import { useEvents } from "@/hooks/use-content";
 export default function Home() {
   const { data: events } = useEvents();
   const upcomingEvents = events?.slice(0, 3) || [];
+  const liveEvent = events?.find(e => e.isLive);
 
   return (
     <div className="min-h-screen">
+      {/* LIVE NOTIFICATION BANNER */}
+      {liveEvent && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          className="bg-red-600 text-white py-2 px-4 text-center relative z-50 overflow-hidden"
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-3">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            </span>
+            <p className="text-sm font-bold uppercase tracking-widest">
+              Live Now: {liveEvent.title}
+            </p>
+            <Link href="/events">
+              <button className="bg-white text-red-600 px-3 py-0.5 rounded-full text-xs font-bold hover:bg-gray-100 transition-colors">
+                Join Livestream
+              </button>
+            </Link>
+          </div>
+        </motion.div>
+      )}
       {/* HERO SECTION */}
-      <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pb-40">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           {/* Using a high-quality church interior from Unsplash */}
@@ -31,7 +55,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <span className="inline-block py-1 px-3 rounded-full bg-secondary/20 border border-secondary text-secondary font-bold tracking-wider text-sm mb-6 backdrop-blur-sm">
+            <span className="inline-block py-1 px-3 rounded-full bg-secondary/20 border border-secondary text-secondary font-bold tracking-wider text-sm mb-6 mt-40 md:mt-52 backdrop-blur-sm">
               WELCOME TO GOD'S PRESENCE
             </span>
             <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
@@ -42,30 +66,45 @@ export default function Home() {
               Raising a generation of champions who enforce the kingdom of God on earth through power, purpose, and purity.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/about">
-                <Button size="lg" className="bg-secondary text-primary hover:bg-white hover:text-primary font-bold text-lg px-8 py-6 rounded-full">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center relative py-12">
+              <Link href="/new-member">
+                <Button size="lg" className="bg-secondary text-primary hover:bg-white hover:text-primary font-bold text-lg px-8 py-6 rounded-full shadow-lg">
                   I'm New Here
                 </Button>
               </Link>
+
+              {/* Scroll Indicator in the middle - DANCING AGAIN */}
+              <motion.div
+                className="hidden md:flex flex-col items-center mx-4 text-white/50"
+                animate={{
+                  y: [0, 8, 0],
+                  opacity: [0.3, 0.7, 0.3]
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 1.5,
+                  ease: "easeInOut"
+                }}
+              >
+                <div className="w-[1px] h-8 bg-white/30" />
+                <span className="text-[10px] uppercase tracking-tighter mt-1">Scroll</span>
+              </motion.div>
+
               <Link href="/events">
-                <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-primary font-bold text-lg px-8 py-6 rounded-full bg-transparent">
-                  Watch Live
+                <Button size="lg" variant="outline" className={`border-2 border-white text-white hover:bg-white hover:text-primary font-bold text-lg px-8 py-6 rounded-full bg-transparent flex items-center gap-2 shadow-lg ${liveEvent ? 'border-secondary text-secondary shadow-[0_0_15px_rgba(255,215,0,0.4)]' : ''}`}>
+                  {liveEvent && (
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+                    </span>
+                  )}
+                  {liveEvent ? "Join Live Stream" : "Watch Live"}
                 </Button>
               </Link>
             </div>
           </motion.div>
         </div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-        >
-          <div className="w-[1px] h-12 bg-gradient-to-b from-white to-transparent mx-auto" />
-          <span className="text-xs uppercase tracking-widest mt-2 block">Scroll</span>
-        </motion.div>
       </section>
 
       {/* WELCOME SECTION */}
@@ -162,7 +201,7 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="p-6 flex-1 flex flex-col">
-                      <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{event.title}</h3>
+                      <h3 className="text-2xl font-extrabold mb-2 group-hover:text-primary transition-colors tracking-tight">{event.title}</h3>
                       <p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-1">{event.description}</p>
                       <span className="text-secondary font-bold text-sm flex items-center">
                         View Details <ArrowRight className="ml-1 w-4 h-4" />

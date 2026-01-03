@@ -28,7 +28,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-white pt-24 pb-16">
+    <div className="min-h-screen bg-white pt-48 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader title="Contact Us" subtitle="Get in Touch" />
 
@@ -37,9 +37,9 @@ export default function Contact() {
           <div>
             <div className="bg-primary text-white rounded-2xl p-10 shadow-xl overflow-hidden relative">
               <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-              
+
               <h3 className="font-display text-3xl font-bold mb-8 relative z-10">Ministry Information</h3>
-              
+
               <div className="space-y-8 relative z-10">
                 <div className="flex items-start gap-4">
                   <div className="bg-white/10 p-3 rounded-lg">
@@ -93,7 +93,7 @@ export default function Contact() {
           <div className="bg-gray-50 rounded-2xl p-10 border border-gray-100">
             <h3 className="font-display text-3xl font-bold mb-6 text-gray-900">Send us a Message</h3>
             <p className="text-gray-600 mb-8">
-              Have a question, testimony, or prayer request? Fill out the form below 
+              Have a question, testimony, or prayer request? Fill out the form below
               and our team will be in touch with you.
             </p>
 

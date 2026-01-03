@@ -36,7 +36,7 @@ function CommentSection({ eventId }: { eventId: number }) {
     <div className="mt-6 border-t border-gray-100 pt-4">
       <div className="flex justify-between items-center mb-4">
         <h4 className="font-bold text-sm text-gray-700 flex items-center gap-2">
-          <MessageCircle className="w-4 h-4" /> 
+          <MessageCircle className="w-4 h-4" />
           Comments ({comments?.length || 0})
         </h4>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -93,7 +93,7 @@ export default function Events() {
   if (isLoading) return <div className="min-h-screen pt-24 text-center">Loading events...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-16">
+    <div className="min-h-screen bg-gray-50 pt-48 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader title="Events & Livestreams" subtitle="Join Us Live" />
 
@@ -104,12 +104,22 @@ export default function Events() {
               <span className="w-2 h-2 bg-white rounded-full"></span> LIVE NOW
             </div>
             <div className="aspect-video bg-gray-900 flex items-center justify-center">
-              {/* This would be an iframe or video player */}
-              <div className="text-center">
-                 <Video className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                 <p className="text-gray-400">Livestream Player Placeholder</p>
-                 <p className="text-sm text-gray-600 mt-2">Connect your streaming service here</p>
-              </div>
+              {events.find(e => e.isLive)?.videoUrl ? (
+                <iframe
+                  className="w-full h-full"
+                  src={events.find(e => e.isLive)!.videoUrl!.includes('youtube.com') || events.find(e => e.isLive)!.videoUrl!.includes('youtu.be')
+                    ? events.find(e => e.isLive)!.videoUrl!.replace('watch?v=', 'embed/').split('&')[0]
+                    : events.find(e => e.isLive)!.videoUrl}
+                  title="Live Stream"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              ) : (
+                <div className="text-center">
+                  <Video className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400">Waiting for live stream to start...</p>
+                </div>
+              )}
             </div>
             <div className="p-6 bg-white">
               <h2 className="text-2xl font-bold mb-2">{events.find(e => e.isLive)?.title}</h2>
@@ -139,25 +149,21 @@ export default function Events() {
                   </div>
                 )}
               </div>
-              
+
               <div className="p-6 flex-1 flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <span className="text-xs font-bold text-secondary bg-secondary/10 px-2 py-1 rounded mb-2 inline-block">
-                      {event.videoUrl ? "Video Available" : "Upcoming"}
-                    </span>
-                    <h3 className="font-bold text-xl">{event.title}</h3>
-                  </div>
-                  <div className="text-center bg-gray-50 rounded-lg p-2 min-w-[60px]">
-                    <span className="block text-xl font-bold text-primary leading-none">
-                      {new Date(event.date).getDate()}
-                    </span>
-                    <span className="block text-xs text-gray-500 uppercase">
-                      {format(new Date(event.date), 'MMM')}
-                    </span>
+                <div className="mb-4">
+                  <span className="text-xs font-bold text-secondary bg-secondary/10 px-2 py-1 rounded mb-2 inline-block">
+                    {event.videoUrl ? "Video Available" : "Upcoming"}
+                  </span>
+                  <h3 className="font-extrabold text-3xl mb-3 text-primary tracking-tight leading-tight">{event.title}</h3>
+                  <div className="flex items-center text-gray-500 text-sm gap-4">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {format(new Date(event.date), 'PPP')}
+                    </div>
                   </div>
                 </div>
-                
+
                 <p className="text-gray-600 text-sm mb-6 flex-1">
                   {event.description}
                 </p>

@@ -2,7 +2,7 @@
 console.log("🚀 Admin Creation Script");
 
 // Use CommonJS require instead of ES6 import
-const storage = require("../server/storage");
+import * as storage from "../server/storage";
 
 async function main() {
     const args = process.argv.slice(2);

@@ -1,11 +1,12 @@
 import {
-  users, events, programmes, staff, departments, comments,
+  users, events, programmes, staff, departments, comments, registrations,
   type User, type InsertUser,
   type Event, type InsertEvent,
   type Programme, type InsertProgramme,
   type Staff, type InsertStaff,
   type Department, type InsertDepartment,
-  type Comment, type InsertComment
+  type Comment, type InsertComment,
+  type Registration, type InsertRegistration
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -14,11 +15,14 @@ export interface IStorage {
   // Users
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByUsernameCaseInsensitive(username: string): Promise<User | undefined>;
+  getUserByEmailCaseInsensitive(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
   // Events
   getEvents(): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: number, event: Partial<InsertEvent> | { isLive: boolean, videoUrl?: string }): Promise<Event>;
   deleteEvent(id: number): Promise<void>;
 
   // Programmes
@@ -37,6 +41,10 @@ export interface IStorage {
   // Comments
   getComments(eventId: number): Promise<Comment[]>;
   createComment(comment: InsertComment): Promise<Comment>;
+
+  // Registrations
+  getRegistrations(): Promise<Registration[]>;
+  createRegistration(registration: InsertRegistration): Promise<Registration>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -51,6 +59,20 @@ export class DatabaseStorage implements IStorage {
     if (!db) throw new Error("Database not initialized");
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
+  }
+
+  async getUserByUsernameCaseInsensitive(username: string): Promise<User | undefined> {
+    if (!db) throw new Error("Database not initialized");
+    // For simplicity, we filter in memory or use a lower() helper if needed.
+    // Drizzle doesn't have a built-in lower() for equality in a generic way without sql-template.
+    const allUsers = await db.select().from(users);
+    return allUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+  }
+
+  async getUserByEmailCaseInsensitive(email: string): Promise<User | undefined> {
+    if (!db) throw new Error("Database not initialized");
+    const allUsers = await db.select().from(users);
+    return allUsers.find(u => u.email?.toLowerCase() === email.toLowerCase());
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -74,6 +96,13 @@ export class DatabaseStorage implements IStorage {
   async deleteEvent(id: number): Promise<void> {
     if (!db) throw new Error("Database not initialized");
     await db.delete(events).where(eq(events.id, id));
+  }
+
+  async updateEvent(id: number, update: Partial<InsertEvent>): Promise<Event> {
+    if (!db) throw new Error("Database not initialized");
+    const [event] = await db.update(events).set(update).where(eq(events.id, id)).returning();
+    if (!event) throw new Error("Event not found");
+    return event;
   }
 
   // Programmes
@@ -128,6 +157,18 @@ export class DatabaseStorage implements IStorage {
     const [comment] = await db.insert(comments).values(insertComment).returning();
     return comment;
   }
+
+  // Registrations
+  async getRegistrations(): Promise<Registration[]> {
+    if (!db) throw new Error("Database not initialized");
+    return await db.select().from(registrations);
+  }
+
+  async createRegistration(insertRegistration: InsertRegistration): Promise<Registration> {
+    if (!db) throw new Error("Database not initialized");
+    const [registration] = await db.insert(registrations).values(insertRegistration).returning();
+    return registration;
+  }
 }
 
 
@@ -138,6 +179,7 @@ export class MemStorage implements IStorage {
   private staff: Map<number, Staff>;
   private departments: Map<number, Department>;
   private comments: Map<number, Comment>;
+  private registrations: Map<number, Registration>;
 
   private currentId: { [key: string]: number };
 
@@ -148,7 +190,8 @@ export class MemStorage implements IStorage {
     this.staff = new Map();
     this.departments = new Map();
     this.comments = new Map();
-    this.currentId = { users: 1, events: 1, programmes: 1, staff: 1, departments: 1, comments: 1 };
+    this.registrations = new Map();
+    this.currentId = { users: 1, events: 1, programmes: 1, staff: 1, departments: 1, comments: 1, registrations: 1 };
   }
 
   private getId(collection: string): number {
@@ -166,9 +209,26 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByUsernameCaseInsensitive(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username.toLowerCase() === username.toLowerCase(),
+    );
+  }
+
+  async getUserByEmailCaseInsensitive(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email?.toLowerCase() === email.toLowerCase(),
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.getId("users");
-    const user: User = { ...insertUser, id, isAdmin: insertUser.isAdmin ?? false };
+    const user: User = {
+      ...insertUser,
+      id,
+      email: insertUser.email ?? null,
+      isAdmin: insertUser.isAdmin ?? false
+    };
     this.users.set(id, user);
     return user;
   }
@@ -194,6 +254,14 @@ export class MemStorage implements IStorage {
 
   async deleteEvent(id: number): Promise<void> {
     this.events.delete(id);
+  }
+
+  async updateEvent(id: number, update: Partial<InsertEvent>): Promise<Event> {
+    const existing = this.events.get(id);
+    if (!existing) throw new Error("Event not found");
+    const updated = { ...existing, ...update };
+    this.events.set(id, updated);
+    return updated;
   }
 
   // Programmes
@@ -270,9 +338,31 @@ export class MemStorage implements IStorage {
     this.comments.set(id, comment);
     return comment;
   }
+
+  // Registrations
+  async getRegistrations(): Promise<Registration[]> {
+    return Array.from(this.registrations.values());
+  }
+
+  async createRegistration(insertRegistration: InsertRegistration): Promise<Registration> {
+    const id = this.getId("registrations");
+    const registration: Registration = {
+      ...insertRegistration,
+      id,
+      createdAt: new Date()
+    };
+    this.registrations.set(id, registration);
+    return registration;
+  }
 }
 
-export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemStorage();
+// Fallback to MemStorage if DATABASE_URL is not provided or if we want to force memory storage for local dev
+const useDatabase = !!process.env.DATABASE_URL;
+export const storage = useDatabase ? new DatabaseStorage() : new MemStorage();
+
+if (!useDatabase) {
+  console.log("ℹ️ Using In-Memory Storage (Local Development Mode)");
+}
 
 import fs from "fs";
 import path from "path";
