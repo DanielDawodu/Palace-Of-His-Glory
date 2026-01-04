@@ -10,3 +10,4 @@ yarn-debug.log*
 pnpm-debug.log*
 server/data
 *.tar.gz
+.vercel

@@ -17,17 +17,29 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Setup Multer Storage for Cloudinary
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (_req, _file) => {
-        return {
-            folder: 'church-assets',
-            allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-            transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
-        };
-    },
-});
+const hasCloudinary = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
 
-export const upload = multer({ storage: storage });
+let storage;
+if (hasCloudinary) {
+    // Setup Multer Storage for Cloudinary
+    storage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: async (_req, _file) => {
+            return {
+                folder: 'church-assets',
+                allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+                transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
+            };
+        },
+    });
+} else {
+    console.warn("⚠️ Cloudinary not configured. Uploads will fail.");
+}
+
+export const upload = hasCloudinary ? multer({ storage: storage }) : multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (_req, _file, cb) => {
+        cb(new Error("Cloudinary not configured - Uploads disabled"));
+    }
+});
 export { cloudinary };

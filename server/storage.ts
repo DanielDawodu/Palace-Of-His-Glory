@@ -17,6 +17,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByUsernameCaseInsensitive(username: string): Promise<User | undefined>;
   getUserByEmailCaseInsensitive(email: string): Promise<User | undefined>;
+  getAdmins(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
 
   // Events
@@ -73,6 +74,11 @@ export class DatabaseStorage implements IStorage {
     if (!db) throw new Error("Database not initialized");
     const allUsers = await db.select().from(users);
     return allUsers.find(u => u.email?.toLowerCase() === email.toLowerCase());
+  }
+
+  async getAdmins(): Promise<User[]> {
+    if (!db) throw new Error("Database not initialized");
+    return await db.select().from(users).where(eq(users.isAdmin, true));
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -221,6 +227,10 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getAdmins(): Promise<User[]> {
+    return Array.from(this.users.values()).filter(u => u.isAdmin);
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.getId("users");
     const user: User = {
@@ -364,38 +374,4 @@ if (!useDatabase) {
   console.log("ℹ️ Using In-Memory Storage (Local Development Mode)");
 }
 
-import fs from "fs";
-import path from "path";
-
-const adminFilePath = path.join(
-  process.cwd(),
-  "server",
-  "data",
-  "admin.json"
-);
-
-export type Admin = {
-  id: number;
-  email: string;
-  password: string;
-  role: "admin";
-  createdAt: string;
-};
-
-export function getAdmins(): Admin[] {
-  if (!fs.existsSync(adminFilePath)) {
-    fs.mkdirSync(path.dirname(adminFilePath), { recursive: true });
-    fs.writeFileSync(adminFilePath, JSON.stringify({ admins: [] }, null, 2));
-  }
-
-  const data = JSON.parse(fs.readFileSync(adminFilePath, "utf-8"));
-  return data.admins || [];
-}
-
-export function saveAdmins(admins: Admin[]) {
-  fs.writeFileSync(
-    adminFilePath,
-    JSON.stringify({ admins }, null, 2)
-  );
-}
 

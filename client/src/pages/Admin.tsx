@@ -10,8 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEvents, useCreateEvent, useUpdateEventLive, useDeleteEvent, useProgrammes, useCreateProgramme, useDeleteProgramme, useStaff, useCreateStaff, useDepartments, useCreateDepartment, useRegistrations } from "@/hooks/use-content";
-import { Plus, Trash2, Calendar, List, Users, Landmark, Radio, Heart } from "lucide-react";
+import { useEvents, useCreateEvent, useUpdateEventLive, useDeleteEvent, useProgrammes, useCreateProgramme, useDeleteProgramme, useStaff, useCreateStaff, useDepartments, useCreateDepartment, useRegistrations, useAdmins } from "@/hooks/use-content";
+import { Plus, Trash2, Calendar, List, Users, Landmark, Radio, Heart, UserPlus } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { useForm, Controller } from "react-hook-form";
 import { ImageUpload } from "@/components/ImageUpload";
 import { Switch } from "@/components/ui/switch";
@@ -105,9 +108,9 @@ function EventsManager() {
                 <Radio className={`w-4 h-4 ${event.isLive ? "text-red-500 animate-pulse" : "text-gray-400"}`} />
                 <span className="text-sm font-medium">Live</span>
                 <Switch
-                  checked={event.isLive}
+                  checked={event.isLive ?? false}
                   onCheckedChange={(checked) => {
-                    updateEventLive.mutate({ id: event.id, isLive: checked, videoUrl: event.videoUrl });
+                    updateEventLive.mutate({ id: event.id, isLive: checked, videoUrl: event.videoUrl ?? undefined });
                   }}
                 />
               </div>
@@ -412,6 +415,92 @@ function RegistrationsManager({ data: registrations }: { data: any[] | undefined
   );
 }
 
+
+function AdminsManager() {
+  const { data: admins } = useAdmins();
+  const [open, setOpen] = useState(false);
+  const { register, handleSubmit, reset } = useForm();
+  const { toast } = useToast();
+
+  const queryClient = useQueryClient();
+
+  // We'll use a local mutation since this is a one-off admin feature
+  const createAdminMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/admin/create", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "New admin created successfully" });
+      setOpen(false);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/admins"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const onSubmit = (data: any) => {
+    createAdminMutation.mutate(data);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">Manage Admins</h2>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="w-4 h-4 mr-2" /> Add New Admin</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Create New Admin User</DialogTitle></DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Label>Username</Label>
+                <Input {...register("username", { required: true })} />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" {...register("email", { required: true })} />
+              </div>
+              <div>
+                <Label>Password</Label>
+                <Input type="password" {...register("password", { required: true, minLength: 6 })} />
+              </div>
+              <Button type="submit" className="w-full" disabled={createAdminMutation.isPending}>
+                {createAdminMutation.isPending ? "Creating..." : "Create Admin"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+          <h3 className="font-bold text-gray-700">Existing Admins ({admins?.length || 0})</h3>
+        </div>
+        {admins?.map((admin: any) => (
+          <div key={admin.id} className="p-4 border-b flex justify-between items-center last:border-0 hover:bg-gray-50 transition-colors">
+            <div>
+              <p className="font-bold flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" />
+                {admin.username}
+                {admin.isAdmin && <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full">Super Admin</span>}
+              </p>
+              <p className="text-sm text-gray-500">{admin.email}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400">Created: {new Date(admin.createdAt || Date.now()).toLocaleDateString()}</p>
+            </div>
+          </div>
+        ))}
+        {admins?.length === 0 && <p className="p-8 text-center text-gray-500">No admins found.</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -436,7 +525,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="events" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8 bg-white p-1 rounded-lg border border-gray-200">
+          <TabsList className="grid w-full grid-cols-6 mb-8 bg-white p-1 rounded-lg border border-gray-200">
             <TabsTrigger value="events" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" /> Events
             </TabsTrigger>
@@ -451,12 +540,15 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="registrations" className="flex items-center gap-2 relative">
               <Heart className="w-4 h-4 text-red-500" />
-              Registrations
+              New Members
               {!!registrations?.length && (
                 <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center animate-bounce shadow-lg border-2 border-white font-bold">
                   {registrations.length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4" /> Admins
             </TabsTrigger>
           </TabsList>
 
@@ -474,6 +566,9 @@ export default function Admin() {
           </TabsContent>
           <TabsContent value="registrations">
             <RegistrationsManager data={registrations} />
+          </TabsContent>
+          <TabsContent value="admins">
+            <AdminsManager />
           </TabsContent>
         </Tabs>
       </div>

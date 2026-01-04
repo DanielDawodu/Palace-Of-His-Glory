@@ -211,3 +211,18 @@ export function useRegistrations() {
     },
   });
 }
+
+// --- ADMINS ---
+export function useAdmins() {
+  return useQuery({
+    queryKey: ["/api/admins"],
+    queryFn: async () => {
+      const res = await fetch("/api/admins");
+      if (!res.ok) {
+        if (res.status === 401) throw new Error("Unauthorized");
+        throw new Error("Failed to fetch admins");
+      }
+      return await res.json();
+    },
+  });
+}

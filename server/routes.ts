@@ -6,7 +6,7 @@ import { z } from "zod";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { upload } from "./cloudinary";
-import { insertRegistrationSchema } from "@shared/schema";
+import { insertRegistrationSchema, insertEventSchema, insertProgrammeSchema, insertStaffSchema, insertDepartmentSchema } from "@shared/schema";
 
 const SessionStore = MemoryStore(session);
 
@@ -87,21 +87,71 @@ export async function registerRoutes(
 
   app.post(api.events.create.path, requireAuth, async (req, res) => {
     try {
-      // Ensure date is a Date object if provided as a string
       const data = { ...req.body };
+
+      // Fix: Handle empty strings for optional URL fields
+      if (data.imageUrl === "") data.imageUrl = null;
+      if (data.videoUrl === "") data.videoUrl = null;
+
+      // Fix: robust date parsing
       if (typeof data.date === "string") {
         data.date = new Date(data.date);
+      }
+
+      if (isNaN(data.date?.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
       }
 
       const validatedData = insertEventSchema.parse(data);
       const event = await storage.createEvent(validatedData);
       res.status(201).json(event);
     } catch (e: any) {
-      console.error("❌ Event creation error:", e.message || e);
+      console.error("❌ Event creation error:", e);
       res.status(400).json({
         message: "Invalid input",
         details: e.errors ? e.errors : e.message
       });
+    }
+  });
+
+  // Create Admin Route
+  app.post("/api/admin/create", requireAuth, async (req, res) => {
+    try {
+      const { username, password, email } = req.body;
+      if (!username || !password || !email) {
+        return res.status(400).json({ message: "Username, email and password are required" });
+      }
+
+      const existingUser = await storage.getUserByUsernameCaseInsensitive(username);
+      if (existingUser) {
+        return res.status(409).json({ message: "Username already exists" });
+      }
+
+      const newUser = await storage.createUser({
+        username,
+        password, // Note: In a real app, hash this!
+        email,
+        isAdmin: true
+      });
+
+      res.status(201).json({ message: "Admin created successfully", user: { id: newUser.id, username: newUser.username } });
+    } catch (e: any) {
+      console.error("❌ Admin creation error:", e);
+      res.status(500).json({ message: "Failed to create admin" });
+    }
+  });
+
+  app.get("/api/admins", requireAuth, async (req, res) => {
+    try {
+      const admins = await storage.getAdmins();
+      // Don't send passwords
+      const safeAdmins = admins.map(a => {
+        const { password, ...rest } = a;
+        return rest;
+      });
+      res.json(safeAdmins);
+    } catch (e: any) {
+      res.status(500).json({ message: "Failed to fetch admins" });
     }
   });
 
@@ -226,7 +276,71 @@ export async function registerRoutes(
   });
 
   // Seeding
-  await seedDatabase();
+  try {
+    await seedDatabase();
+  } catch (e: any) {
+    console.error("❌ Failed to seed database:", e);
+    (global as any).seedError = e.message;
+    // Don't throw, let the server start
+  }
+
+  // Diagnostics Endpoint
+  app.get("/api/diagnostics", async (req, res) => {
+    try {
+      const isDatabaseConfigured = !!process.env.DATABASE_URL;
+      let dbStatus = "Unknown";
+      let counts = { users: 0, events: 0, programmes: 0, staff: 0 };
+      let seedStatus = (global as any).seedError ? `Failed: ${(global as any).seedError}` : "Success";
+
+      if (isDatabaseConfigured) {
+        try {
+          // Check connection
+          await storage.getUserByUsernameCaseInsensitive("Daniel");
+          dbStatus = "Connected";
+
+          // Get counts
+          const users = await storage.getAdmins(); // Reusing getAdmins as a proxy for user count (or add explicit count methods later)
+          const events = await storage.getEvents();
+          const programmes = await storage.getProgrammes();
+          const staff = await storage.getStaff();
+
+          counts = {
+            users: users.length, // This is just admins, but good enough for now
+            events: events.length,
+            programmes: programmes.length,
+            staff: staff.length
+          };
+
+        } catch (e: any) {
+          dbStatus = `Connection Error: ${e.message}`;
+        }
+      } else {
+        dbStatus = "Not Configured (Using Memory)";
+        // In memory stats
+        const events = await storage.getEvents();
+        const programmes = await storage.getProgrammes();
+        const staff = await storage.getStaff();
+        counts = {
+          users: (await storage.getAdmins()).length,
+          events: events.length,
+          programmes: programmes.length,
+          staff: staff.length
+        };
+      }
+
+      res.json({
+        status: "online",
+        environment: process.env.NODE_ENV,
+        storageMode: isDatabaseConfigured ? "Database" : "Memory",
+        databaseStatus: dbStatus,
+        dataCounts: counts,
+        seedStatus: seedStatus,
+        timestamp: new Date().toISOString()
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   return httpServer;
 }

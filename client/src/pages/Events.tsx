@@ -18,8 +18,15 @@ function CommentSection({ eventId }: { eventId: number }) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Schema for the form (excluding eventId)
-  const formSchema = insertCommentSchema.omit({ eventId: true, createdAt: true });
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
+  const formSchema = insertCommentSchema.omit({ eventId: true });
+  interface FormValues {
+    name: string;
+    content: string;
+  }
+
+  // type FormValues = z.infer<typeof formSchema>;
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema)
   });
 
@@ -109,7 +116,7 @@ export default function Events() {
                   className="w-full h-full"
                   src={events.find(e => e.isLive)!.videoUrl!.includes('youtube.com') || events.find(e => e.isLive)!.videoUrl!.includes('youtu.be')
                     ? events.find(e => e.isLive)!.videoUrl!.replace('watch?v=', 'embed/').split('&')[0]
-                    : events.find(e => e.isLive)!.videoUrl}
+                    : events.find(e => e.isLive)!.videoUrl ?? undefined}
                   title="Live Stream"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
