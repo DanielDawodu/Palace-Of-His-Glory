@@ -491,8 +491,8 @@ async function seedDatabase() {
     });
     await storage.createDepartment({
       name: "Ushers Department",
-      leader: "Sis. Mary",
+      leader: "Sis. Adebanjo",
       description: "Maintaining order and welcoming guests."
     });
-  }
+  } s
 }
