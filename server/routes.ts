@@ -162,8 +162,13 @@ export async function registerRoutes(
 
   // Programmes Routes
   app.get(api.programmes.list.path, async (req, res) => {
-    const programmes = await storage.getProgrammes();
-    res.json(programmes);
+    try {
+      const programmes = await storage.getProgrammes();
+      res.json(programmes);
+    } catch (e: any) {
+      console.error('Failed to fetch programmes:', e);
+      res.json([]);
+    }
   });
 
   app.post(api.programmes.create.path, requireAuth, async (req, res) => {
@@ -183,8 +188,14 @@ export async function registerRoutes(
 
   // Staff Routes
   app.get(api.staff.list.path, async (req, res) => {
-    const staff = await storage.getStaff();
-    res.json(staff);
+    try {
+      const staff = await storage.getStaff();
+      res.json(staff);
+    } catch (e: any) {
+      console.error('Failed to fetch staff:', e);
+      // Degrade gracefully for the public site — return empty array
+      res.json([]);
+    }
   });
 
   app.post(api.staff.create.path, requireAuth, async (req, res) => {
@@ -199,8 +210,13 @@ export async function registerRoutes(
 
   // Departments Routes
   app.get(api.departments.list.path, async (req, res) => {
-    const departments = await storage.getDepartments();
-    res.json(departments);
+    try {
+      const departments = await storage.getDepartments();
+      res.json(departments);
+    } catch (e: any) {
+      console.error('Failed to fetch departments:', e);
+      res.json([]);
+    }
   });
 
   app.post(api.departments.create.path, requireAuth, async (req, res) => {
