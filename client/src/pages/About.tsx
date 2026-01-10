@@ -3,12 +3,45 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { Users, Music, Star, BookHeart } from "lucide-react";
 
 export default function About() {
-  const { data: staffList } = useStaff();
+  const { data: staffList, isError } = useStaff();
   const { data: departments } = useDepartments();
 
-  // Categorize staff
-  const leadPastor = staffList?.find(s => s.isLead);
-  const otherPastors = staffList?.filter(s => s.category === 'pastor' && !s.isLead) || [];
+  // Fallback static staff used when API fails or no staff seeded
+  const fallbackLead = {
+    id: -1,
+    name: "Pastor Bright Oluwole",
+    role: "Lead Pastor and General Overseer",
+    category: "pastor",
+    isLead: true,
+    bio: "Pastor Bright Oluwole is the visionary leader and General Overseer of Palace of His Glory International Ministries.",
+    imageUrl: "/pastor-bright.jpg",
+  };
+
+  const fallbackOthers = [
+    {
+      id: -2,
+      name: "Pastor Oluwakemi Adesanya",
+      role: "Associate Pastor",
+      category: "pastor",
+      isLead: false,
+      imageUrl: "/pastor-oluwakemi.jpg",
+    },
+    {
+      id: -3,
+      name: "Pastor Adewale Olusanwo",
+      role: "Associate Pastor",
+      category: "pastor",
+      isLead: false,
+      imageUrl: "/pastor-adewale.jpg",
+    },
+  ];
+
+  // Categorize staff — use fallback if fetch failed or no staff
+  const leadPastor = staffList?.find(s => s.isLead) ?? (isError ? fallbackLead : undefined);
+  const otherPastors =
+    (staffList?.filter(s => s.category === "pastor" && !s.isLead) || []).length > 0
+      ? staffList!.filter(s => s.category === "pastor" && !s.isLead)
+      : (isError ? fallbackOthers : []);
   const leadership = staffList?.filter(s => s.category !== 'pastor') || [];
 
   return (
