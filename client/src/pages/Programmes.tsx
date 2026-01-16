@@ -4,7 +4,27 @@ import { Calendar, Clock, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Programmes() {
-  const { data: programmes } = useProgrammes();
+  const { data: programmes, isError, error } = useProgrammes();
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-48 pb-16 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Clock className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Unable to load programmes</h2>
+          <p className="text-gray-600 mb-6">
+            We encountered an error while fetching the programmes list. Please check your connection or try again later.
+          </p>
+          <p className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100 mb-4 font-mono break-all">
+            {error instanceof Error ? error.message : "Internal Server Error"}
+          </p>
+          <a href="/" className="text-primary hover:underline font-medium">Return Home</a>
+        </div>
+      </div>
+    );
+  }
 
   const weeklyProgrammes = programmes?.filter(p => p.type === 'weekly') || [];
   const specialProgrammes = programmes?.filter(p => p.type === 'special') || [];

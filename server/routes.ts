@@ -81,8 +81,17 @@ export async function registerRoutes(
 
   // Events Routes
   app.get(api.events.list.path, async (req, res) => {
-    const events = await storage.getEvents();
-    res.json(events);
+    try {
+      const events = await storage.getEvents();
+      res.json(events);
+    } catch (e: any) {
+      console.error('❌ Error fetching events:', e);
+      // Log connection error details if available
+      if (e.code === 'ECONNREFUSED') {
+        console.error('❌ Connection refused. Is the database running?');
+      }
+      res.status(500).json({ message: e?.message || 'Internal Server Error', stack: process.env.NODE_ENV !== 'production' ? e?.stack : undefined });
+    }
   });
 
   app.post(api.events.create.path, requireAuth, async (req, res) => {
@@ -162,8 +171,13 @@ export async function registerRoutes(
 
   // Programmes Routes
   app.get(api.programmes.list.path, async (req, res) => {
-    const programmes = await storage.getProgrammes();
-    res.json(programmes);
+    try {
+      const programmes = await storage.getProgrammes();
+      res.json(programmes);
+    } catch (e: any) {
+      console.error('❌ Error fetching programmes:', e);
+      res.status(500).json({ message: e?.message || 'Internal Server Error', stack: process.env.NODE_ENV !== 'production' ? e?.stack : undefined });
+    }
   });
 
   app.post(api.programmes.create.path, requireAuth, async (req, res) => {
@@ -183,8 +197,13 @@ export async function registerRoutes(
 
   // Staff Routes
   app.get(api.staff.list.path, async (req, res) => {
-    const staff = await storage.getStaff();
-    res.json(staff);
+    try {
+      const staff = await storage.getStaff();
+      res.json(staff);
+    } catch (e: any) {
+      console.error('❌ Error fetching staff:', e);
+      res.status(500).json({ message: e?.message || 'Internal Server Error', stack: process.env.NODE_ENV !== 'production' ? e?.stack : undefined });
+    }
   });
 
   app.post(api.staff.create.path, requireAuth, async (req, res) => {
@@ -199,8 +218,13 @@ export async function registerRoutes(
 
   // Departments Routes
   app.get(api.departments.list.path, async (req, res) => {
-    const departments = await storage.getDepartments();
-    res.json(departments);
+    try {
+      const departments = await storage.getDepartments();
+      res.json(departments);
+    } catch (e: any) {
+      console.error('❌ Error fetching departments:', e);
+      res.status(500).json({ message: e?.message || 'Internal Server Error', stack: process.env.NODE_ENV !== 'production' ? e?.stack : undefined });
+    }
   });
 
   app.post(api.departments.create.path, requireAuth, async (req, res) => {
@@ -342,10 +366,28 @@ export async function registerRoutes(
     }
   });
 
+  // Admin-only: trigger a seed via POST with header 'x-seed-secret'
+  app.post("/api/admin/seed", async (req, res) => {
+    const secret = req.header('x-seed-secret');
+    if (!process.env.SEED_SECRET) {
+      return res.status(403).json({ message: 'Seeding not allowed (no SEED_SECRET configured)' });
+    }
+    if (!secret || secret !== process.env.SEED_SECRET) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      await seedDatabase();
+      res.json({ message: 'Seed completed' });
+    } catch (e: any) {
+      res.status(500).json({ message: 'Seed failed', error: e.message });
+    }
+  });
+
   return httpServer;
 }
 
-async function seedDatabase() {
+export async function seedDatabase() {
   console.log("🌱 Seeding database...");
 
   // Create Daniel if he doesn't exist
@@ -494,5 +536,5 @@ async function seedDatabase() {
       leader: "Sis. Adebanjo",
       description: "Maintaining order and welcoming guests."
     });
-  } s
+  }
 }
