@@ -278,8 +278,10 @@ export async function registerRoutes(
       console.error("❌ Registration error:", e.message || e);
       if (e.errors) {
         console.error("Validation details:", JSON.stringify(e.errors));
+        return res.status(400).json({ message: "Invalid input", details: e.message });
       }
-      res.status(400).json({ message: "Invalid input", details: e.message });
+      // Assuming DB error if not Zod validation error
+      res.status(500).json({ message: "Database Error", details: e.message });
     }
   });
 

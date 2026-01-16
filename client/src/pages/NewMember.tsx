@@ -51,10 +51,10 @@ export default function NewMember() {
             });
             setLocation("/");
         },
-        onError: () => {
+        onError: (error) => {
             toast({
                 title: "Submission Error",
-                description: "There was a problem submitting your form. Please try again.",
+                description: error instanceof Error ? error.message : "There was a problem submitting your form.",
                 variant: "destructive",
             });
         },
