@@ -18,14 +18,6 @@ export const pool = process.env.DATABASE_URL
   : null;
 export const db = pool ? drizzle(pool, { schema }) : null;
 
-if (pool) {
-  // Verify connection immediately
-  pool.connect()
-    .then(client => {
-      console.log("✅ Database connected successfully");
-      client.release();
-    })
-    .catch(err => {
-      console.error("❌ Database connection failed on startup:", err.message);
-    });
-}
+// Don't connect specifically on startup to avoid unhandled rejections in Vercel.
+// The connection will be lazily established when the first query is run by Drizzle/Pool.
+// if (pool) { ... }

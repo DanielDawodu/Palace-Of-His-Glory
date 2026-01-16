@@ -5,6 +5,12 @@ let app: any = null;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log("🚀 Serverless Function Handler Invoked");
+
+    // SANITY CHECK: Allow verifying the handler itself works without loading any deps
+    if (req.query.ping === 'true') {
+        return res.status(200).json({ status: 'pong', message: 'Handler is running' });
+    }
+
     try {
         if (!app) {
             console.log("Lazy loading app...");
