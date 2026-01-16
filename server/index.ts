@@ -9,6 +9,12 @@ export { app, setupPromise } from "./app";
 // Helper to check if we are the main module (work with CJS bundle)
 const isMainModule = (import.meta.url === `file://${process.argv[1]}`) || (typeof require !== 'undefined' && require.main === module);
 
+// Export app for Verce/Serverless usage
+export { app, setupPromise } from "./app";
+
+// Helper to check if we are the main module (work with CJS bundle)
+const isMainModule = (import.meta.url === `file://${process.argv[1]}`) || (typeof require !== 'undefined' && require.main === module);
+
 (async () => {
   // Only start server if running directly (npm start / dev)
   // OR if we are not in a serverless environment (optional check)

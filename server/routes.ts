@@ -430,7 +430,7 @@ export async function seedDatabase() {
       role: "Lead Pastor and General Overseer",
       category: "pastor",
       isLead: true,
-      bio: "Pastor Bright Oluwole is the visionary leader and General Overseer of Palace of His Glory International Ministries. A charismatic and dynamic preacher, he is known for his honest and transparent approach to ministry. With a heart ablaze for God and a passion for souls, he has dedicated his life to teaching the undiluted Word of God with clarity and power. His ministry is marked by a strong emphasis on prayer, worship, and raising believers to walk in their God-given purpose and destiny. Pastor Bright's authentic leadership style and commitment to truth have made him a trusted spiritual guide to many.",
+      bio: "Pastor Bright Oluwole is the visionary leader and General Overseer of Palace of His Glory International Ministries. A charismatic and dynamic preacher, he is known for his honest and transparent approach to ministry. With a heart ablaze for God and a passion for souls, he has dedicated his life to teaching the undiluted Word of God with clarity and power. His ministry is marked by a strong emphasis on prayer, worship, and raising believers to walk in their God-given purpose and destiny. Pastor Brights authentic leadership style and commitment to truth have made him a trusted spiritual guide to many.",
       imageUrl: "/pastor-bright.jpg"
     });
     await storage.createStaff({
