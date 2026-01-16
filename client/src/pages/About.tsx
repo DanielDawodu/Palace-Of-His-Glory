@@ -44,6 +44,31 @@ export default function About() {
       : (isError ? fallbackOthers : []);
   const leadership = staffList?.filter(s => s.category !== 'pastor') || [];
 
+  // Fallback Departments
+  const fallbackDepartments = [
+    {
+      id: -1,
+      name: "Choir Department",
+      leader: "Sis. Adebisi",
+      description: "Leading the congregation in worship.",
+    },
+    {
+      id: -2,
+      name: "Ushers Department",
+      leader: "Sis. Adebanjo",
+      description: "Maintaining order and welcoming guests."
+    },
+    {
+      id: -3,
+      name: "Children's Department",
+      leader: "Deaconess Alabi",
+      description: "Raising godly children for the next generation."
+    }
+  ];
+
+  const displayDepartments = (departments && departments.length > 0) ? departments : fallbackDepartments;
+
+
   return (
     <div className="min-h-screen bg-white pt-48 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -154,7 +179,7 @@ export default function About() {
         <SectionHeader title="Church Ministries" subtitle="Get Involved" />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {departments?.map(dept => (
+          {displayDepartments.map(dept => (
             <div key={dept.id} className="group bg-white rounded-2xl p-8 shadow-md border border-gray-100 hover:border-primary/20 hover:shadow-xl transition-all">
               <div className="w-14 h-14 bg-primary/5 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                 {dept.name.toLowerCase().includes('choir') ? <Music className="w-6 h-6" /> :
@@ -170,16 +195,7 @@ export default function About() {
                 <p className="font-medium text-primary">{dept.leader}</p>
               </div>
             </div>
-          )) || (
-              // Default if no data
-              [1, 2, 3].map(i => (
-                <div key={i} className="bg-gray-50 rounded-2xl p-8 h-48 animate-pulse">
-                  <div className="w-12 h-12 bg-gray-200 rounded-full mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-full"></div>
-                </div>
-              ))
-            )}
+          ))}
         </div>
       </div>
     </div>
