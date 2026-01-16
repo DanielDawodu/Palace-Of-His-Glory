@@ -92,7 +92,7 @@ export default function Programmes() {
     }
   ];
 
-  const displayProgrammes = (isError || !programmes) ? fallbackProgrammes : programmes;
+  const displayProgrammes = (isError || !programmes || programmes.length === 0) ? fallbackProgrammes : programmes;
 
 
   const weeklyProgrammes = displayProgrammes.filter(p => p.type === 'weekly') || [];

@@ -121,7 +121,7 @@ export default function Events() {
     }
   ];
 
-  const displayEvents = (isLoading || !events) ? fallbackEvents : events;
+  const displayEvents = (isLoading || !events || events.length === 0) ? fallbackEvents : events;
 
   if (isLoading && !events) return <div className="min-h-screen pt-24 text-center">Loading events...</div>;
 
