@@ -11,7 +11,10 @@ export function useEvents() {
     queryKey: [api.events.list.path],
     queryFn: async () => {
       const res = await fetch(api.events.list.path);
-      if (!res.ok) throw new Error("Failed to fetch events");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch events");
+      }
       const data = await res.json();
       return api.events.list.responses[200].parse(data);
     },
@@ -69,7 +72,10 @@ export function useProgrammes() {
     queryKey: [api.programmes.list.path],
     queryFn: async () => {
       const res = await fetch(api.programmes.list.path);
-      if (!res.ok) throw new Error("Failed to fetch programmes");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch programmes");
+      }
       const data = await res.json();
       return api.programmes.list.responses[200].parse(data);
     },
@@ -110,7 +116,10 @@ export function useStaff() {
     queryKey: [api.staff.list.path],
     queryFn: async () => {
       const res = await fetch(api.staff.list.path);
-      if (!res.ok) throw new Error("Failed to fetch staff");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch staff");
+      }
       const data = await res.json();
       return api.staff.list.responses[200].parse(data);
     },
@@ -139,7 +148,10 @@ export function useDepartments() {
     queryKey: [api.departments.list.path],
     queryFn: async () => {
       const res = await fetch(api.departments.list.path);
-      if (!res.ok) throw new Error("Failed to fetch departments");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch departments");
+      }
       const data = await res.json();
       return api.departments.list.responses[200].parse(data);
     },
@@ -205,7 +217,10 @@ export function useRegistrations() {
     queryKey: [api.registrations.list.path],
     queryFn: async () => {
       const res = await fetch(api.registrations.list.path);
-      if (!res.ok) throw new Error("Failed to fetch registrations");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch registrations");
+      }
       const data = await res.json();
       return api.registrations.list.responses[200].parse(data);
     },
