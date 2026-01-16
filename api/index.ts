@@ -1,11 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { app, setupPromise } from "../server/app.js";
+// Cache the app instance across invocations
+let app: any = null;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log("🚀 Serverless Function Handler Invoked");
     try {
-        await setupPromise;
+        if (!app) {
+            console.log("Lazy loading app...");
+            // Dynamic import catches ALL top-level errors (DB, Syntax, Missing Modules)
+            const mod = await import("../server/app.js");
+            await mod.setupPromise;
+            app = mod.app;
+            console.log("✅ App lazy loaded successfully");
+        }
+
         app(req, res);
     } catch (e: any) {
         console.error("🔥 Critical Server Startup Failure:", e);
