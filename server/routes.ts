@@ -303,13 +303,17 @@ export async function registerRoutes(
     res.json({ url: (req.file as any).path });
   });
 
-  // Seeding
+  // Seeding - Non-blocking
   try {
-    await seedDatabase();
+    // We don't await here to allow the server to start immediately
+    // This runs in the background
+    seedDatabase().catch(e => {
+      console.error("❌ Failed to seed database:", e);
+      (global as any).seedError = e.message;
+    });
   } catch (e: any) {
-    console.error("❌ Failed to seed database:", e);
+    console.error("❌ Failed to initiate seeding:", e);
     (global as any).seedError = e.message;
-    // Don't throw, let the server start
   }
 
   // Diagnostics Endpoint
