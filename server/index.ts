@@ -3,31 +3,34 @@ import { app, httpServer, setupPromise, log } from "./app";
 
 import { serveStatic } from "./static";
 
+// Export app for Verce/Serverless usage
+export { app, setupPromise } from "./app";
+
+// Helper to check if we are the main module (work with CJS bundle)
+const isMainModule = (import.meta.url === `file://${process.argv[1]}`) || (typeof require !== 'undefined' && require.main === module);
+
 (async () => {
-  await setupPromise;
+  // Only start server if running directly (npm start / dev)
+  // OR if we are not in a serverless environment (optional check)
+  if (!process.env.VERCEL && isMainModule) {
+    await setupPromise;
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV !== "production") {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
-  } else {
-    serveStatic(app);
+    if (process.env.NODE_ENV !== "production") {
+      const { setupVite } = await import("./vite");
+      await setupVite(httpServer, app);
+    } else {
+      serveStatic(app);
+    }
+
+    const port = parseInt(process.env.PORT || "3000", 10);
+    httpServer.listen(
+      {
+        port,
+        host: "0.0.0.0",
+      },
+      () => {
+        log(`serving on port ${port}`);
+      },
+    );
   }
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "3000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
 })();
