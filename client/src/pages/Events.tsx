@@ -97,7 +97,34 @@ function CommentSection({ eventId }: { eventId: number }) {
 export default function Events() {
   const { data: events, isLoading } = useEvents();
 
-  if (isLoading) return <div className="min-h-screen pt-24 text-center">Loading events...</div>;
+  // Fallback data
+  const fallbackEvents = [
+    {
+      id: -1,
+      title: "Sunday Service Live",
+      description: "Join us online for our powerful Sunday service.",
+      date: new Date().toISOString(),
+      location: "Online & Main Sanctuary",
+      isLive: true,
+      videoUrl: "https://www.youtube.com/watch?v=live",
+      imageUrl: null
+    },
+    {
+      id: -2,
+      title: "Special Revival Service",
+      description: "A time of refreshing and impartation.",
+      date: new Date(Date.now() + 86400000 * 2).toISOString(),
+      location: "Main Sanctuary",
+      isLive: false,
+      videoUrl: null,
+      imageUrl: null
+    }
+  ];
+
+  const displayEvents = (isLoading || !events) ? fallbackEvents : events;
+
+  if (isLoading && !events) return <div className="min-h-screen pt-24 text-center">Loading events...</div>;
+
 
   return (
     <div className="min-h-screen bg-gray-50 pt-48 pb-16">
@@ -105,18 +132,18 @@ export default function Events() {
         <SectionHeader title="Events & Livestreams" subtitle="Join Us Live" />
 
         {/* Featured / Live Now */}
-        {events?.find(e => e.isLive) && (
+        {displayEvents?.find(e => e.isLive) && (
           <div className="mb-16 bg-black rounded-2xl overflow-hidden shadow-2xl relative">
             <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse z-10 flex items-center gap-2">
               <span className="w-2 h-2 bg-white rounded-full"></span> LIVE NOW
             </div>
             <div className="aspect-video bg-gray-900 flex items-center justify-center">
-              {events.find(e => e.isLive)?.videoUrl ? (
+              {displayEvents.find(e => e.isLive)?.videoUrl ? (
                 <iframe
                   className="w-full h-full"
-                  src={events.find(e => e.isLive)!.videoUrl!.includes('youtube.com') || events.find(e => e.isLive)!.videoUrl!.includes('youtu.be')
-                    ? events.find(e => e.isLive)!.videoUrl!.replace('watch?v=', 'embed/').split('&')[0]
-                    : events.find(e => e.isLive)!.videoUrl ?? undefined}
+                  src={displayEvents.find(e => e.isLive)!.videoUrl!.includes('youtube.com') || displayEvents.find(e => e.isLive)!.videoUrl!.includes('youtu.be')
+                    ? displayEvents.find(e => e.isLive)!.videoUrl!.replace('watch?v=', 'embed/').split('&')[0]
+                    : displayEvents.find(e => e.isLive)!.videoUrl ?? undefined}
                   title="Live Stream"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -129,16 +156,16 @@ export default function Events() {
               )}
             </div>
             <div className="p-6 bg-white">
-              <h2 className="text-2xl font-bold mb-2">{events.find(e => e.isLive)?.title}</h2>
-              <p className="text-gray-600">{events.find(e => e.isLive)?.description}</p>
-              <CommentSection eventId={events.find(e => e.isLive)!.id} />
+              <h2 className="text-2xl font-bold mb-2">{displayEvents.find(e => e.isLive)?.title}</h2>
+              <p className="text-gray-600">{displayEvents.find(e => e.isLive)?.description}</p>
+              <CommentSection eventId={displayEvents.find(e => e.isLive)!.id} />
             </div>
           </div>
         )}
 
         {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {events?.filter(e => !e.isLive).map(event => (
+          {displayEvents?.filter(e => !e.isLive).map(event => (
             <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 flex flex-col">
               <div className="relative h-48 bg-gray-200">
                 {event.imageUrl ? (
@@ -181,7 +208,7 @@ export default function Events() {
           ))}
         </div>
 
-        {events?.length === 0 && (
+        {displayEvents?.length === 0 && (
           <div className="text-center py-20 bg-white rounded-2xl shadow-sm">
             <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-medium text-gray-900">No events found</h3>

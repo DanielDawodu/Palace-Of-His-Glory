@@ -6,28 +6,97 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function Programmes() {
   const { data: programmes, isError, error } = useProgrammes();
 
-  if (isError) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-48 pb-16 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="w-8 h-8 text-red-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Unable to load programmes</h2>
-          <p className="text-gray-600 mb-6">
-            We encountered an error while fetching the programmes list. Please check your connection or try again later.
-          </p>
-          <p className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100 mb-4 font-mono break-all">
-            {error instanceof Error ? error.message : "Internal Server Error"}
-          </p>
-          <a href="/" className="text-primary hover:underline font-medium">Return Home</a>
-        </div>
-      </div>
-    );
-  }
 
-  const weeklyProgrammes = programmes?.filter(p => p.type === 'weekly') || [];
-  const specialProgrammes = programmes?.filter(p => p.type === 'special') || [];
+  // Fallback data matches server/routes.ts seeds
+  const fallbackProgrammes = [
+    {
+      id: -1,
+      title: "Worker's Meeting",
+      description: "Preparation for service.",
+      type: "weekly",
+      day: "Sunday",
+      time: "8:00 AM",
+      location: "Main Auditorium"
+    },
+    {
+      id: -2,
+      title: "Sunday Service",
+      description: "Join us for a time of worship and word.",
+      type: "weekly",
+      day: "Sunday",
+      time: "9:00 AM",
+      location: "Main Auditorium"
+    },
+    {
+      id: -3,
+      title: "Bible Study",
+      description: "Digging deep into the scriptures.",
+      type: "weekly",
+      day: "Tuesday",
+      time: "5:30 PM",
+      location: "Main Auditorium"
+    },
+    {
+      id: -4,
+      title: "Hour Of Glorification",
+      description: "Revival Sessions.",
+      type: "weekly",
+      day: "Wednesday",
+      time: "5:00 PM",
+      location: "Main Auditorium"
+    },
+    {
+      id: -5,
+      title: "Night of Destiny",
+      description: "A powerful night of prophetic prayers and divine encounters.",
+      type: "special",
+      day: "Every last Friday of the Month",
+      time: "11:00 PM",
+      location: "Main Sanctuary"
+    },
+    {
+      id: -6,
+      title: "Romilowo",
+      description: "Every 2nd Saturday of the Month Prayer and sacrifice.",
+      type: "special",
+      day: "Every 2nd Saturday of the Month",
+      time: "5:30 AM - 7:00 AM",
+      location: "Main Sanctuary"
+    },
+    {
+      id: -7,
+      title: "Youth Summit",
+      description: "Empowering the next generation for kingdom impact.",
+      type: "special",
+      day: "Every 1st Tuesday of the Month",
+      time: "5:30 PM",
+      location: "Youth Hall"
+    },
+    {
+      id: -8,
+      title: "Hosannah Service",
+      description: "A special service of praise and victory.",
+      type: "special",
+      day: "Every 1st Sunday of the Month",
+      time: "9:00 AM",
+      location: "Main Sanctuary"
+    },
+    {
+      id: -9,
+      title: "Impartation Service",
+      description: "Divine empowerment and mantle for the week ahead.",
+      type: "special",
+      day: "Every last Sunday of the Month",
+      time: "7:30 AM",
+      location: "Main Sanctuary"
+    }
+  ];
+
+  const displayProgrammes = (isError || !programmes) ? fallbackProgrammes : programmes;
+
+
+  const weeklyProgrammes = displayProgrammes.filter(p => p.type === 'weekly') || [];
+  const specialProgrammes = displayProgrammes.filter(p => p.type === 'special') || [];
 
   return (
     <div className="min-h-screen bg-gray-50 pt-48 pb-16">
