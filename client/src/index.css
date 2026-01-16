@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Royal Blue & Gold Theme */
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Cormorant Garamond', serif;
+
+  --background: 0 0% 100%;       /* White */
+  --foreground: 222 47% 11%;     /* Dark Blue-Black */
+  
+  /* Primary: Royal Blue #1a237e -> HSL 235 66% 30% */
+  --primary: 235 66% 30%;
+  --primary-foreground: 210 40% 98%;
+
+  /* Secondary: Gold #ffd700 -> HSL 51 100% 50% */
+  --secondary: 51 100% 50%;
+  --secondary-foreground: 235 66% 30%;
+
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+
+  --accent: 51 100% 50%;
+  --accent-foreground: 235 66% 30%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 235 66% 30%;
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  /* Not prioritizing dark mode for church site, but good to have fallback */
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  
+  --primary: 235 66% 40%;
+  --primary-foreground: 210 40% 98%;
+  
+  --secondary: 51 100% 50%;
+  --secondary-foreground: 235 66% 30%;
+  
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  
+  --accent: 51 100% 50%;
+  --accent-foreground: 235 66% 30%;
+  
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 210 40% 98%;
+  
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 224 76% 48%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight;
+  }
+}
+
+/* Custom Utilities for Gold Accents */
+.text-gold {
+  color: hsl(var(--secondary));
+}
+.bg-gold {
+  background-color: hsl(var(--secondary));
+}
+.border-gold {
+  border-color: hsl(var(--secondary));
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
