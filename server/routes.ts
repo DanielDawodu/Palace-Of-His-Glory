@@ -28,31 +28,33 @@ export async function registerRoutes(
   // Auth Routes
   app.post(api.auth.login.path, async (req, res) => {
     const { username, password } = req.body;
-    // Try username first
-    let user = await storage.getUserByUsernameCaseInsensitive(username);
+    try {
+      // Try username first
+      let user = await storage.getUserByUsernameCaseInsensitive(username);
 
-    // If not found, try email
-    if (!user) {
-      user = await storage.getUserByEmailCaseInsensitive(username);
-    }
-
-    // Simple password check for lite prototype (should use hashing in prod)
-    console.log(`Login attempt for: ${username}`);
-    if (user) {
-      console.log(`User found: ${user.username}`);
-      console.log(`Stored password: "${user.password}"`);
-      console.log(`Provided password: "${password}"`);
-      console.log(`Match: ${user.password === password}`);
-
-      if (user.password === password) {
-        (req.session as any).userId = user.id;
-        return res.json({ message: "Login successful" });
+      // If not found, try email
+      if (!user) {
+        user = await storage.getUserByEmailCaseInsensitive(username);
       }
-    } else {
-      console.log(`User not found: "${username}"`);
-    }
 
-    res.status(401).json({ message: "Invalid credentials" });
+      // Simple password check for lite prototype (should use hashing in prod)
+      console.log(`Login attempt for: ${username}`);
+      if (user) {
+        // console.log(`User found: ${user.username}`); // Don't log passwords or sensitive info in prod logic
+
+        if (user.password === password) {
+          (req.session as any).userId = user.id;
+          return res.json({ message: "Login successful" });
+        }
+      } else {
+        console.log(`User not found: "${username}"`);
+      }
+
+      res.status(401).json({ message: "Invalid credentials" });
+    } catch (e: any) {
+      console.error("Login Error:", e);
+      res.status(500).json({ message: "Login failed due to server error", details: e.message });
+    }
   });
 
   app.post(api.auth.logout.path, (req, res) => {
