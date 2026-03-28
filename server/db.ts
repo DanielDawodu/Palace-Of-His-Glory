@@ -1,16 +1,17 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
-import * as schema from "@shared/schema";
+import mongoose from "mongoose";
 
-const { Pool } = pg;
-
-if (!process.env.DATABASE_URL) {
+if (!process.env.MONGODB_URI) {
   console.warn(
-    "DATABASE_URL not set. storage/db.ts will not export a valid database connection.",
+    "MONGODB_URI not set. server/db.ts will not connect to a real database. We will fallback to MemStorage.",
   );
 }
 
-export const pool = process.env.DATABASE_URL
-  ? new Pool({ connectionString: process.env.DATABASE_URL })
-  : null;
-export const db = pool ? drizzle(pool, { schema }) : null;
+export const connectDB = async () => {
+  if (!process.env.MONGODB_URI) return;
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("✅ Connected to MongoDB successfully");
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err);
+  }
+};

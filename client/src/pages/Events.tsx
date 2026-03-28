@@ -12,7 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCommentSchema } from "@shared/schema";
 import { z } from "zod";
 
-function CommentSection({ eventId }: { eventId: number }) {
+function CommentSection({ eventId }: { eventId: string }) {
   const { data: comments } = useComments(eventId);
   const createComment = useCreateComment();
   const [isOpen, setIsOpen] = useState(false);

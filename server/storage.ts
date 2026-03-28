@@ -1,5 +1,4 @@
 import {
-  users, events, programmes, staff, departments, comments, registrations,
   type User, type InsertUser,
   type Event, type InsertEvent,
   type Programme, type InsertProgramme,
@@ -8,12 +7,14 @@ import {
   type Comment, type InsertComment,
   type Registration, type InsertRegistration
 } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { 
+  UserModel, EventModel, ProgrammeModel, StaffModel, 
+  DepartmentModel, CommentModel, RegistrationModel 
+} from "./models";
 
 export interface IStorage {
   // Users
-  getUser(id: number): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByUsernameCaseInsensitive(username: string): Promise<User | undefined>;
   getUserByEmailCaseInsensitive(email: string): Promise<User | undefined>;
@@ -23,13 +24,13 @@ export interface IStorage {
   // Events
   getEvents(): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
-  updateEvent(id: number, event: Partial<InsertEvent> | { isLive: boolean, videoUrl?: string }): Promise<Event>;
-  deleteEvent(id: number): Promise<void>;
+  updateEvent(id: string, event: Partial<InsertEvent> | { isLive: boolean, videoUrl?: string }): Promise<Event>;
+  deleteEvent(id: string): Promise<void>;
 
   // Programmes
   getProgrammes(): Promise<Programme[]>;
   createProgramme(programme: InsertProgramme): Promise<Programme>;
-  deleteProgramme(id: number): Promise<void>;
+  deleteProgramme(id: string): Promise<void>;
 
   // Staff
   getStaff(): Promise<Staff[]>;
@@ -40,7 +41,7 @@ export interface IStorage {
   createDepartment(department: InsertDepartment): Promise<Department>;
 
   // Comments
-  getComments(eventId: number): Promise<Comment[]>;
+  getComments(eventId: string): Promise<Comment[]>;
   createComment(comment: InsertComment): Promise<Comment>;
 
   // Registrations
@@ -48,144 +49,131 @@ export interface IStorage {
   createRegistration(registration: InsertRegistration): Promise<Registration>;
 }
 
-export class DatabaseStorage implements IStorage {
+export class MongoStorage implements IStorage {
   // Users
-  async getUser(id: number): Promise<User | undefined> {
-    if (!db) throw new Error("Database not initialized");
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+  async getUser(id: string): Promise<User | undefined> {
+    const user = await UserModel.findById(id).lean();
+    return user ? (user as unknown as User) : undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    if (!db) throw new Error("Database not initialized");
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    const user = await UserModel.findOne({ username }).lean();
+    return user ? (user as unknown as User) : undefined;
   }
 
   async getUserByUsernameCaseInsensitive(username: string): Promise<User | undefined> {
-    if (!db) throw new Error("Database not initialized");
-    // For simplicity, we filter in memory or use a lower() helper if needed.
-    // Drizzle doesn't have a built-in lower() for equality in a generic way without sql-template.
-    const allUsers = await db.select().from(users);
-    return allUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+    const user = await UserModel.findOne({
+      username: { $regex: new RegExp(`^${username}$`, "i") }
+    }).lean();
+    return user ? (user as unknown as User) : undefined;
   }
 
   async getUserByEmailCaseInsensitive(email: string): Promise<User | undefined> {
-    if (!db) throw new Error("Database not initialized");
-    const allUsers = await db.select().from(users);
-    return allUsers.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    const user = await UserModel.findOne({
+      email: { $regex: new RegExp(`^${email}$`, "i") }
+    }).lean();
+    return user ? (user as unknown as User) : undefined;
   }
 
   async getAdmins(): Promise<User[]> {
-    if (!db) throw new Error("Database not initialized");
-    return await db.select().from(users).where(eq(users.isAdmin, true));
+    const users = await UserModel.find({ isAdmin: true }).lean();
+    return users as unknown as User[];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    if (!db) throw new Error("Database not initialized");
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    const user = await UserModel.create(insertUser);
+    return user.toJSON() as unknown as User;
   }
 
   // Events
   async getEvents(): Promise<Event[]> {
-    if (!db) throw new Error("Database not initialized");
-    return await db.select().from(events);
+    const events = await EventModel.find({}).lean();
+    return events as unknown as Event[];
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
-    if (!db) throw new Error("Database not initialized");
-    const [event] = await db.insert(events).values(insertEvent).returning();
-    return event;
+    const event = await EventModel.create(insertEvent);
+    return event.toJSON() as unknown as Event;
   }
 
-  async deleteEvent(id: number): Promise<void> {
-    if (!db) throw new Error("Database not initialized");
-    await db.delete(events).where(eq(events.id, id));
+  async deleteEvent(id: string): Promise<void> {
+    await EventModel.findByIdAndDelete(id);
   }
 
-  async updateEvent(id: number, update: Partial<InsertEvent>): Promise<Event> {
-    if (!db) throw new Error("Database not initialized");
-    const [event] = await db.update(events).set(update).where(eq(events.id, id)).returning();
+  async updateEvent(id: string, update: Partial<InsertEvent>): Promise<Event> {
+    const event = await EventModel.findByIdAndUpdate(id, update, { new: true }).lean();
     if (!event) throw new Error("Event not found");
-    return event;
+    return event as unknown as Event;
   }
 
   // Programmes
   async getProgrammes(): Promise<Programme[]> {
-    if (!db) throw new Error("Database not initialized");
-    return await db.select().from(programmes);
+    const programmes = await ProgrammeModel.find({}).lean();
+    return programmes as unknown as Programme[];
   }
 
   async createProgramme(insertProgramme: InsertProgramme): Promise<Programme> {
-    if (!db) throw new Error("Database not initialized");
-    const [programme] = await db.insert(programmes).values(insertProgramme).returning();
-    return programme;
+    const programme = await ProgrammeModel.create(insertProgramme);
+    return programme.toJSON() as unknown as Programme;
   }
 
-  async deleteProgramme(id: number): Promise<void> {
-    if (!db) throw new Error("Database not initialized");
-    await db.delete(programmes).where(eq(programmes.id, id));
+  async deleteProgramme(id: string): Promise<void> {
+    await ProgrammeModel.findByIdAndDelete(id);
   }
 
   // Staff
   async getStaff(): Promise<Staff[]> {
-    if (!db) throw new Error("Database not initialized");
-    return await db.select().from(staff);
+    const staff = await StaffModel.find({}).lean();
+    return staff as unknown as Staff[];
   }
 
   async createStaff(insertStaff: InsertStaff): Promise<Staff> {
-    if (!db) throw new Error("Database not initialized");
-    const [newStaff] = await db.insert(staff).values(insertStaff).returning();
-    return newStaff;
+    const staff = await StaffModel.create(insertStaff);
+    return staff.toJSON() as unknown as Staff;
   }
 
   // Departments
   async getDepartments(): Promise<Department[]> {
-    if (!db) throw new Error("Database not initialized");
-    return await db.select().from(departments);
+    const depts = await DepartmentModel.find({}).lean();
+    return depts as unknown as Department[];
   }
 
-  async createDepartment(insertDepartment: InsertDepartment): Promise<Department> {
-    if (!db) throw new Error("Database not initialized");
-    const [department] = await db.insert(departments).values(insertDepartment).returning();
-    return department;
+  async createDepartment(insertDept: InsertDepartment): Promise<Department> {
+    const dept = await DepartmentModel.create(insertDept);
+    return dept.toJSON() as unknown as Department;
   }
 
   // Comments
-  async getComments(eventId: number): Promise<Comment[]> {
-    if (!db) throw new Error("Database not initialized");
-    return await db.select().from(comments).where(eq(comments.eventId, eventId));
+  async getComments(eventId: string): Promise<Comment[]> {
+    const comments = await CommentModel.find({ eventId }).lean();
+    return comments as unknown as Comment[];
   }
 
   async createComment(insertComment: InsertComment): Promise<Comment> {
-    if (!db) throw new Error("Database not initialized");
-    const [comment] = await db.insert(comments).values(insertComment).returning();
-    return comment;
+    const comment = await CommentModel.create(insertComment);
+    return comment.toJSON() as unknown as Comment;
   }
 
   // Registrations
   async getRegistrations(): Promise<Registration[]> {
-    if (!db) throw new Error("Database not initialized");
-    return await db.select().from(registrations);
+    const regs = await RegistrationModel.find({}).lean();
+    return regs as unknown as Registration[];
   }
 
-  async createRegistration(insertRegistration: InsertRegistration): Promise<Registration> {
-    if (!db) throw new Error("Database not initialized");
-    const [registration] = await db.insert(registrations).values(insertRegistration).returning();
-    return registration;
+  async createRegistration(insertReg: InsertRegistration): Promise<Registration> {
+    const reg = await RegistrationModel.create(insertReg);
+    return reg.toJSON() as unknown as Registration;
   }
 }
 
-
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private events: Map<number, Event>;
-  private programmes: Map<number, Programme>;
-  private staff: Map<number, Staff>;
-  private departments: Map<number, Department>;
-  private comments: Map<number, Comment>;
-  private registrations: Map<number, Registration>;
+  private users: Map<string, User>;
+  private events: Map<string, Event>;
+  private programmes: Map<string, Programme>;
+  private staff: Map<string, Staff>;
+  private departments: Map<string, Department>;
+  private comments: Map<string, Comment>;
+  private registrations: Map<string, Registration>;
 
   private currentId: { [key: string]: number };
 
@@ -200,12 +188,12 @@ export class MemStorage implements IStorage {
     this.currentId = { users: 1, events: 1, programmes: 1, staff: 1, departments: 1, comments: 1, registrations: 1 };
   }
 
-  private getId(collection: string): number {
-    return this.currentId[collection]++;
+  private getId(collection: string): string {
+    return (this.currentId[collection]++).toString();
   }
 
   // Users
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
 
@@ -237,7 +225,7 @@ export class MemStorage implements IStorage {
       ...insertUser,
       id,
       email: insertUser.email ?? null,
-      isAdmin: insertUser.isAdmin ?? false
+      isAdmin: insertUser.isAdmin ?? true
     };
     this.users.set(id, user);
     return user;
@@ -262,11 +250,11 @@ export class MemStorage implements IStorage {
     return event;
   }
 
-  async deleteEvent(id: number): Promise<void> {
+  async deleteEvent(id: string): Promise<void> {
     this.events.delete(id);
   }
 
-  async updateEvent(id: number, update: Partial<InsertEvent>): Promise<Event> {
+  async updateEvent(id: string, update: Partial<InsertEvent>): Promise<Event> {
     const existing = this.events.get(id);
     if (!existing) throw new Error("Event not found");
     const updated = { ...existing, ...update };
@@ -292,7 +280,7 @@ export class MemStorage implements IStorage {
     return programme;
   }
 
-  async deleteProgramme(id: number): Promise<void> {
+  async deleteProgramme(id: string): Promise<void> {
     this.programmes.delete(id);
   }
 
@@ -332,7 +320,7 @@ export class MemStorage implements IStorage {
   }
 
   // Comments
-  async getComments(eventId: number): Promise<Comment[]> {
+  async getComments(eventId: string): Promise<Comment[]> {
     return Array.from(this.comments.values()).filter(
       (comment) => comment.eventId === eventId,
     );
@@ -343,6 +331,7 @@ export class MemStorage implements IStorage {
     const comment: Comment = {
       ...insertComment,
       id,
+      eventId: insertComment.eventId,
       createdAt: new Date()
     };
     this.comments.set(id, comment);
@@ -366,12 +355,10 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Fallback to MemStorage if DATABASE_URL is not provided or if we want to force memory storage for local dev
-const useDatabase = !!process.env.DATABASE_URL;
-export const storage = useDatabase ? new DatabaseStorage() : new MemStorage();
+// Fallback to MemStorage if MONGODB_URI is not provided
+const useDatabase = !!process.env.MONGODB_URI;
+export const storage = useDatabase ? new MongoStorage() : new MemStorage();
 
 if (!useDatabase) {
   console.log("ℹ️ Using In-Memory Storage (Local Development Mode)");
 }
-
-

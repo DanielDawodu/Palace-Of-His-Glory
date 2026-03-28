@@ -1,99 +1,109 @@
-import { pgTable, text, serial, boolean, timestamp, integer } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Admin Users
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  email: text("email"),
-  password: text("password").notNull(),
-  isAdmin: boolean("is_admin").default(true),
+export const insertUserSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email").optional().nullable(),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  isAdmin: z.boolean().default(true).optional(),
+});
+
+export const userSchema = insertUserSchema.extend({
+  id: z.string(),
 });
 
 // Events & Livestreams
-export const events = pgTable("events", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  date: timestamp("date").notNull(),
-  imageUrl: text("image_url"),
-  videoUrl: text("video_url"), // For uploads or YouTube embeds
-  isLive: boolean("is_live").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertEventSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  date: z.coerce.date(),
+  imageUrl: z.string().optional().nullable(),
+  videoUrl: z.string().optional().nullable(),
+  isLive: z.boolean().default(false).optional(),
 });
 
-// Programmes (Weekly/Special)
-export const programmes = pgTable("programmes", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  type: text("type").notNull(), // 'weekly' | 'special'
-  day: text("day"), // e.g., "Sunday"
-  time: text("time"), // e.g., "9:00 AM"
-  location: text("location"),
+export const eventSchema = insertEventSchema.extend({
+  id: z.string(),
+  createdAt: z.date().optional(),
 });
 
-// Staff (Pastors, Deacons)
-export const staff = pgTable("staff", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  role: text("role").notNull(),
-  category: text("category").notNull(), // 'pastor' | 'deacon' | 'leadership'
-  imageUrl: text("image_url"),
-  bio: text("bio"),
-  isLead: boolean("is_lead").default(false), // For the main pastor
+// Programmes
+export const insertProgrammeSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  type: z.string().min(1, "Type is required"), // 'weekly' | 'special'
+  day: z.string().optional().nullable(),
+  time: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
 });
 
-// Departments (Choir, Ushers, etc)
-export const departments = pgTable("departments", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  leader: text("leader").notNull(),
-  description: text("description"),
-  imageUrl: text("image_url"),
+export const programmeSchema = insertProgrammeSchema.extend({
+  id: z.string(),
 });
 
-// Comments on Events
-export const comments = pgTable("comments", {
-  id: serial("id").primaryKey(),
-  eventId: integer("event_id").notNull(),
-  name: text("name").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+// Staff
+export const insertStaffSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  role: z.string().min(1, "Role is required"),
+  category: z.string().min(1, "Category is required"), // 'pastor' | 'deacon' | 'leadership'
+  imageUrl: z.string().optional().nullable(),
+  bio: z.string().optional().nullable(),
+  isLead: z.boolean().default(false).optional(),
 });
 
-// Member Registrations
-export const registrations = pgTable("registrations", {
-  id: serial("id").primaryKey(),
-  fullName: text("full_name").notNull(),
-  phone: text("phone").notNull(),
-  email: text("email").notNull(),
-  address: text("address").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+export const staffSchema = insertStaffSchema.extend({
+  id: z.string(),
 });
 
-// Schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
-export const insertProgrammeSchema = createInsertSchema(programmes).omit({ id: true });
-export const insertStaffSchema = createInsertSchema(staff).omit({ id: true });
-export const insertDepartmentSchema = createInsertSchema(departments).omit({ id: true });
-export const insertCommentSchema = createInsertSchema(comments).omit({ id: true, createdAt: true });
-export const insertRegistrationSchema = createInsertSchema(registrations).omit({ id: true, createdAt: true });
+// Departments
+export const insertDepartmentSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  leader: z.string().min(1, "Leader is required"),
+  description: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
+});
+
+export const departmentSchema = insertDepartmentSchema.extend({
+  id: z.string(),
+});
+
+// Comments
+export const insertCommentSchema = z.object({
+  eventId: z.union([z.string(), z.number()]).transform(String),
+  name: z.string().min(1, "Name is required"),
+  content: z.string().min(1, "Content is required"),
+});
+
+export const commentSchema = insertCommentSchema.extend({
+  id: z.string(),
+  createdAt: z.date().optional(),
+});
+
+// Registrations
+export const insertRegistrationSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  phone: z.string().min(1, "Phone is required"),
+  email: z.string().email("Invalid email"),
+  address: z.string().min(1, "Address is required"),
+});
+
+export const registrationSchema = insertRegistrationSchema.extend({
+  id: z.string(),
+  createdAt: z.date().optional(),
+});
 
 // Types
-export type User = typeof users.$inferSelect;
+export type User = z.infer<typeof userSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Event = typeof events.$inferSelect;
+export type Event = z.infer<typeof eventSchema>;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
-export type Programme = typeof programmes.$inferSelect;
+export type Programme = z.infer<typeof programmeSchema>;
 export type InsertProgramme = z.infer<typeof insertProgrammeSchema>;
-export type Staff = typeof staff.$inferSelect;
+export type Staff = z.infer<typeof staffSchema>;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
-export type Department = typeof departments.$inferSelect;
+export type Department = z.infer<typeof departmentSchema>;
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
-export type Comment = typeof comments.$inferSelect;
+export type Comment = z.infer<typeof commentSchema>;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
-export type Registration = typeof registrations.$inferSelect;
+export type Registration = z.infer<typeof registrationSchema>;
 export type InsertRegistration = z.infer<typeof insertRegistrationSchema>;

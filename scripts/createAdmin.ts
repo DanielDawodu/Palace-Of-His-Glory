@@ -1,10 +1,12 @@
 // scripts/createAdmin.ts
 console.log("🚀 Admin Creation Script");
 
-// Use CommonJS require instead of ES6 import
+// Use ES6 import
 import * as storage from "../server/storage";
+import { connectDB } from "../server/db";
 
 async function main() {
+    await connectDB();
     const args = process.argv.slice(2);
     const email = args[0];
     const password = args[1];
@@ -47,6 +49,8 @@ async function main() {
         console.log(`🆔 ID: ${newUser.id}`);
         console.log(`👑 Role: Admin`);
         console.log("=".repeat(50));
+        
+        process.exit(0);
 
     } catch (error: any) {
         console.error("❌ Error:", error.message);

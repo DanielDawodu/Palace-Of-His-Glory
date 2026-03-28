@@ -38,7 +38,7 @@ export function useCreateEvent() {
 export function useUpdateEventLive() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, isLive, videoUrl }: { id: number, isLive: boolean, videoUrl?: string }) => {
+    mutationFn: async ({ id, isLive, videoUrl }: { id: string, isLive: boolean, videoUrl?: string }) => {
       const res = await fetch(`/api/events/${id}/live`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -54,7 +54,7 @@ export function useUpdateEventLive() {
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const url = buildUrl(api.events.delete.path, { id });
       const res = await fetch(url, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete event");
@@ -95,7 +95,7 @@ export function useCreateProgramme() {
 export function useDeleteProgramme() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const url = buildUrl(api.programmes.delete.path, { id });
       const res = await fetch(url, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete programme");
@@ -163,7 +163,7 @@ export function useCreateDepartment() {
 }
 
 // --- COMMENTS ---
-export function useComments(eventId: number) {
+export function useComments(eventId: string) {
   return useQuery({
     queryKey: [api.comments.list.path, eventId],
     queryFn: async () => {

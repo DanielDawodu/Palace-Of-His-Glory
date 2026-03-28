@@ -7,12 +7,13 @@ import {
   insertDepartmentSchema,
   insertCommentSchema,
   insertRegistrationSchema,
-  events,
-  programmes,
-  staff,
-  departments,
-  comments,
-  registrations
+  type Event,
+  type Programme,
+  type Staff,
+  type Department,
+  type Comment,
+  type Registration,
+  type User
 } from './schema';
 
 export const errorSchemas = {
@@ -60,7 +61,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/events',
       responses: {
-        200: z.array(z.custom<typeof events.$inferSelect>()),
+        200: z.array(z.custom<Event>()),
       },
     },
     create: {
@@ -68,7 +69,7 @@ export const api = {
       path: '/api/events',
       input: insertEventSchema,
       responses: {
-        201: z.custom<typeof events.$inferSelect>(),
+        201: z.custom<Event>(),
         401: errorSchemas.unauthorized,
       },
     },
@@ -86,7 +87,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/programmes',
       responses: {
-        200: z.array(z.custom<typeof programmes.$inferSelect>()),
+        200: z.array(z.custom<Programme>()),
       },
     },
     create: {
@@ -94,7 +95,7 @@ export const api = {
       path: '/api/programmes',
       input: insertProgrammeSchema,
       responses: {
-        201: z.custom<typeof programmes.$inferSelect>(),
+        201: z.custom<Programme>(),
         401: errorSchemas.unauthorized,
       },
     },
@@ -112,7 +113,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/staff',
       responses: {
-        200: z.array(z.custom<typeof staff.$inferSelect>()),
+        200: z.array(z.custom<Staff>()),
       },
     },
     create: {
@@ -120,7 +121,7 @@ export const api = {
       path: '/api/staff',
       input: insertStaffSchema,
       responses: {
-        201: z.custom<typeof staff.$inferSelect>(),
+        201: z.custom<Staff>(),
         401: errorSchemas.unauthorized,
       },
     }
@@ -130,7 +131,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/departments',
       responses: {
-        200: z.array(z.custom<typeof departments.$inferSelect>()),
+        200: z.array(z.custom<Department>()),
       },
     },
     create: {
@@ -138,7 +139,7 @@ export const api = {
       path: '/api/departments',
       input: insertDepartmentSchema,
       responses: {
-        201: z.custom<typeof departments.$inferSelect>(),
+        201: z.custom<Department>(),
         401: errorSchemas.unauthorized,
       },
     }
@@ -148,7 +149,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/events/:eventId/comments',
       responses: {
-        200: z.array(z.custom<typeof comments.$inferSelect>()),
+        200: z.array(z.custom<Comment>()),
       },
     },
     create: {
@@ -156,7 +157,7 @@ export const api = {
       path: '/api/events/:eventId/comments',
       input: insertCommentSchema.omit({ eventId: true }),
       responses: {
-        201: z.custom<typeof comments.$inferSelect>(),
+        201: z.custom<Comment>(),
       },
     }
   },
@@ -165,7 +166,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/registrations',
       responses: {
-        200: z.array(z.custom<typeof registrations.$inferSelect>()),
+        200: z.array(z.custom<Registration>()),
         401: errorSchemas.unauthorized,
       },
     },
@@ -174,7 +175,7 @@ export const api = {
       path: '/api/registrations',
       input: insertRegistrationSchema,
       responses: {
-        201: z.custom<typeof registrations.$inferSelect>(),
+        201: z.custom<Registration>(),
       },
     }
   }

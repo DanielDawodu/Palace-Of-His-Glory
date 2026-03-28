@@ -4,20 +4,26 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import MemoryStoreFactory from "memorystore";
+import MongoStore from "connect-mongo";
 import { upload } from "./cloudinary";
+import { connectDB } from "./db";
 import { insertRegistrationSchema, insertEventSchema, insertProgrammeSchema, insertStaffSchema, insertDepartmentSchema } from "@shared/schema";
 
-const SessionStore = MemoryStore(session);
+const MemoryStore = MemoryStoreFactory(session);
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   // Session setup
+  await connectDB();
+
   app.use(
     session({
-      store: new SessionStore({ checkPeriod: 86400000 }),
+      store: process.env.MONGODB_URI 
+        ? MongoStore.create({ mongoUrl: process.env.MONGODB_URI }) 
+        : new MemoryStore({ checkPeriod: 86400000 }),
       secret: "church_secret_key",
       resave: false,
       saveUninitialized: false,
@@ -156,7 +162,7 @@ export async function registerRoutes(
   });
 
   app.delete(api.events.delete.path, requireAuth, async (req, res) => {
-    await storage.deleteEvent(parseInt(req.params.id));
+    await storage.deleteEvent(req.params.id);
     res.status(204).send();
   });
 
@@ -177,7 +183,7 @@ export async function registerRoutes(
   });
 
   app.delete(api.programmes.delete.path, requireAuth, async (req, res) => {
-    await storage.deleteProgramme(parseInt(req.params.id));
+    await storage.deleteProgramme(req.params.id);
     res.status(204).send();
   });
 
@@ -215,7 +221,7 @@ export async function registerRoutes(
 
   // Comments Routes
   app.patch("/api/events/:id/live", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = req.params.id;
     const { isLive, videoUrl } = req.body;
     try {
       const event = await storage.updateEvent(id, { isLive, videoUrl });
@@ -226,14 +232,14 @@ export async function registerRoutes(
   });
 
   app.get(api.comments.list.path, async (req, res) => {
-    const comments = await storage.getComments(parseInt(req.params.eventId));
+    const comments = await storage.getComments(req.params.eventId);
     res.json(comments);
   });
 
   app.post(api.comments.create.path, async (req, res) => {
     const comment = await storage.createComment({
       ...req.body,
-      eventId: parseInt(req.params.eventId)
+      eventId: req.params.eventId
     });
     res.status(201).json(comment);
   });
@@ -287,7 +293,7 @@ export async function registerRoutes(
   // Diagnostics Endpoint
   app.get("/api/diagnostics", async (req, res) => {
     try {
-      const isDatabaseConfigured = !!process.env.DATABASE_URL;
+      const isDatabaseConfigured = !!process.env.MONGODB_URI;
       let dbStatus = "Unknown";
       let counts = { users: 0, events: 0, programmes: 0, staff: 0 };
       let seedStatus = (global as any).seedError ? `Failed: ${(global as any).seedError}` : "Success";
@@ -494,5 +500,5 @@ async function seedDatabase() {
       leader: "Sis. Adebanjo",
       description: "Maintaining order and welcoming guests."
     });
-  } s
+  }
 }
