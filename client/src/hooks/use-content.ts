@@ -4,6 +4,7 @@ import { z } from "zod";
 import type {
   InsertEvent, InsertProgramme, InsertStaff, InsertDepartment, InsertComment
 } from "@shared/schema";
+import { STATIC_STAFF, STATIC_PROGRAMMES, STATIC_DEPARTMENTS } from "@/lib/static-data";
 
 // --- EVENTS ---
 export function useEvents() {
@@ -68,10 +69,8 @@ export function useProgrammes() {
   return useQuery({
     queryKey: [api.programmes.list.path],
     queryFn: async () => {
-      const res = await fetch(api.programmes.list.path);
-      if (!res.ok) throw new Error("Failed to fetch programmes");
-      const data = await res.json();
-      return api.programmes.list.responses[200].parse(data);
+      // Return static data immediately for maximum reliability
+      return STATIC_PROGRAMMES;
     },
   });
 }
@@ -109,10 +108,8 @@ export function useStaff() {
   return useQuery({
     queryKey: [api.staff.list.path],
     queryFn: async () => {
-      const res = await fetch(api.staff.list.path);
-      if (!res.ok) throw new Error("Failed to fetch staff");
-      const data = await res.json();
-      return api.staff.list.responses[200].parse(data);
+      // Return static data immediately for maximum reliability
+      return STATIC_STAFF;
     },
   });
 }
@@ -138,10 +135,8 @@ export function useDepartments() {
   return useQuery({
     queryKey: [api.departments.list.path],
     queryFn: async () => {
-      const res = await fetch(api.departments.list.path);
-      if (!res.ok) throw new Error("Failed to fetch departments");
-      const data = await res.json();
-      return api.departments.list.responses[200].parse(data);
+      // Return static data immediately for maximum reliability
+      return STATIC_DEPARTMENTS;
     },
   });
 }
