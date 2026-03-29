@@ -49,51 +49,61 @@ export interface IStorage {
   createRegistration(registration: InsertRegistration): Promise<Registration>;
 }
 
+function mapId(doc: any) {
+  if (!doc) return doc;
+  if (doc._id) {
+    doc.id = doc._id.toString();
+    delete doc._id;
+  }
+  delete doc.__v;
+  return doc;
+}
+
 export class MongoStorage implements IStorage {
   // Users
   async getUser(id: string): Promise<User | undefined> {
     const user = await UserModel.findById(id).lean();
-    return user ? (user as unknown as User) : undefined;
+    return user ? (mapId(user) as unknown as User) : undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const user = await UserModel.findOne({ username }).lean();
-    return user ? (user.toJSON() as unknown as User) : undefined;
+    return user ? (mapId(user) as unknown as User) : undefined;
   }
 
   async getUserByUsernameCaseInsensitive(username: string): Promise<User | undefined> {
     const user = await UserModel.findOne({
       username: { $regex: new RegExp(`^${username}$`, "i") }
     }).lean();
-    return user ? (user.toJSON() as unknown as User) : undefined;
+    return user ? (mapId(user) as unknown as User) : undefined;
   }
 
   async getUserByEmailCaseInsensitive(email: string): Promise<User | undefined> {
     const user = await UserModel.findOne({
       email: { $regex: new RegExp(`^${email}$`, "i") }
     }).lean();
-    return user ? (user.toJSON() as unknown as User) : undefined;
+    return user ? (mapId(user) as unknown as User) : undefined;
   }
 
   async getAdmins(): Promise<User[]> {
     const users = await UserModel.find({ isAdmin: true }).lean();
-    return users.map(u => u.toJSON()) as unknown as User[];
+    return users.map(mapId) as unknown as User[];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const user = await UserModel.create(insertUser);
-    return user.toJSON() as unknown as User;
+    return mapId(user.toJSON()) as unknown as User;
   }
 
   // Events
   async getEvents(): Promise<Event[]> {
     const events = await EventModel.find({}).lean();
-    return events.map(e => e.toJSON()) as unknown as Event[];
+    return events.map(mapId) as unknown as Event[];
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
     const event = await EventModel.create(insertEvent);
-    return event.toJSON() as unknown as Event;
+    return mapId(event.toJSON()) as unknown as Event;
   }
 
   async deleteEvent(id: string): Promise<void> {
@@ -103,18 +113,18 @@ export class MongoStorage implements IStorage {
   async updateEvent(id: string, update: Partial<InsertEvent>): Promise<Event> {
     const event = await EventModel.findByIdAndUpdate(id, update, { new: true }).lean();
     if (!event) throw new Error("Event not found");
-    return event.toJSON() as unknown as Event;
+    return mapId(event) as unknown as Event;
   }
 
   // Programmes
   async getProgrammes(): Promise<Programme[]> {
     const programmes = await ProgrammeModel.find({}).lean();
-    return programmes.map(p => p.toJSON()) as unknown as Programme[];
+    return programmes.map(mapId) as unknown as Programme[];
   }
 
   async createProgramme(insertProgramme: InsertProgramme): Promise<Programme> {
     const programme = await ProgrammeModel.create(insertProgramme);
-    return programme.toJSON() as unknown as Programme;
+    return mapId(programme.toJSON()) as unknown as Programme;
   }
 
   async deleteProgramme(id: string): Promise<void> {
@@ -124,45 +134,45 @@ export class MongoStorage implements IStorage {
   // Staff
   async getStaff(): Promise<Staff[]> {
     const staff = await StaffModel.find({}).lean();
-    return staff.map(s => s.toJSON()) as unknown as Staff[];
+    return staff.map(mapId) as unknown as Staff[];
   }
 
   async createStaff(insertStaff: InsertStaff): Promise<Staff> {
     const staff = await StaffModel.create(insertStaff);
-    return staff.toJSON() as unknown as Staff;
+    return mapId(staff.toJSON()) as unknown as Staff;
   }
 
   // Departments
   async getDepartments(): Promise<Department[]> {
     const depts = await DepartmentModel.find({}).lean();
-    return depts.map(d => d.toJSON()) as unknown as Department[];
+    return depts.map(mapId) as unknown as Department[];
   }
 
   async createDepartment(insertDept: InsertDepartment): Promise<Department> {
     const dept = await DepartmentModel.create(insertDept);
-    return dept.toJSON() as unknown as Department;
+    return mapId(dept.toJSON()) as unknown as Department;
   }
 
   // Comments
   async getComments(eventId: string): Promise<Comment[]> {
     const comments = await CommentModel.find({ eventId }).lean();
-    return comments.map(c => c.toJSON()) as unknown as Comment[];
+    return comments.map(mapId) as unknown as Comment[];
   }
 
   async createComment(insertComment: InsertComment): Promise<Comment> {
     const comment = await CommentModel.create(insertComment);
-    return comment.toJSON() as unknown as Comment;
+    return mapId(comment.toJSON()) as unknown as Comment;
   }
 
   // Registrations
   async getRegistrations(): Promise<Registration[]> {
     const regs = await RegistrationModel.find({}).lean();
-    return regs.map(r => r.toJSON()) as unknown as Registration[];
+    return regs.map(mapId) as unknown as Registration[];
   }
 
   async createRegistration(insertReg: InsertRegistration): Promise<Registration> {
     const reg = await RegistrationModel.create(insertReg);
-    return reg.toJSON() as unknown as Registration;
+    return mapId(reg.toJSON()) as unknown as Registration;
   }
 }
 
