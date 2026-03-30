@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { createServer } from "http";
 
 export const app = express();
+app.set("trust proxy", 1); // Enable trust proxy for Vercel
 export const httpServer = createServer(app);
 
 declare module "http" {

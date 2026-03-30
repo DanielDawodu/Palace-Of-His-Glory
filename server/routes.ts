@@ -43,22 +43,19 @@ export async function registerRoutes(
     }
 
     // Simple password check for lite prototype (should use hashing in prod)
-    console.log(`Login attempt for: ${username}`);
-    if (user) {
-      console.log(`User found: ${user.username}`);
-      console.log(`Stored password: "${user.password}"`);
-      console.log(`Provided password: "${password}"`);
-      console.log(`Match: ${user.password === password}`);
-
-      if (user.password === password) {
-        (req.session as any).userId = user.id;
-        return res.json({ message: "Login successful" });
-      }
-    } else {
-      console.log(`User not found: "${username}"`);
+    if (!user) {
+      console.log(`❌ Auth Failure: User "${username}" not found in database.`);
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    res.status(401).json({ message: "Invalid credentials" });
+    if (user.password === password) {
+      console.log(`✅ Auth Success: User "${username}" authenticated.`);
+      (req.session as any).userId = user.id;
+      return res.json({ message: "Login successful", user: { username: user.username, email: user.email } });
+    } else {
+      console.log(`❌ Auth Failure: Password mismatch for user "${username}".`);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
   });
 
   app.post(api.auth.logout.path, (req, res) => {
@@ -346,6 +343,12 @@ export async function registerRoutes(
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
+  });
+
+
+  // Start seeding in background so it doesn't block server startup
+  seedDatabase().catch(err => {
+    console.error("❌ Critical: Database seeding failed:", err);
   });
 
   return httpServer;

@@ -9,7 +9,11 @@ if (!process.env.MONGODB_URI) {
 export const connectDB = async () => {
   if (!process.env.MONGODB_URI) return;
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 30000,
+    });
     console.log("✅ Connected to MongoDB successfully");
   } catch (err) {
     console.error("❌ MongoDB connection error:", err);
