@@ -76,9 +76,24 @@ async function buildAll() {
   });
 
   // Add the Vercel-required export at the end of the generated bundle
+  // This version handles async initialization to prevent 404s/500s on cold starts
   const fs = await import("fs/promises");
   let bundle = await fs.readFile("api/index.js", "utf-8");
-  bundle += "\nmodule.exports = exports.app || app;";
+  bundle += `
+module.exports = async (req, res) => {
+  const application = exports.app || app;
+  const setup = exports.setupPromise || setupPromise;
+  
+  if (setup) {
+    try {
+      await setup;
+    } catch (e) {
+      console.error("❌ Vercel async setup failed:", e);
+    }
+  }
+  
+  return application(req, res);
+};`;
   await fs.writeFile("api/index.js", bundle);
 }
 

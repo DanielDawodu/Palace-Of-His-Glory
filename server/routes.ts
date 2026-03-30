@@ -17,19 +17,25 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   // Session setup
+  console.log("📂 Connecting to database...");
   await connectDB();
+  console.log("📂 Database connected. Setting up sessions...");
 
   app.use(
     session({
       store: process.env.MONGODB_URI 
         ? MongoStore.create({ mongoUrl: process.env.MONGODB_URI }) 
         : new MemoryStore({ checkPeriod: 86400000 }),
+      name: "palace_sid",
       secret: "church_secret_key",
       resave: false,
       saveUninitialized: false,
-      cookie: { maxAge: 86400000, secure: process.env.NODE_ENV === "production" }
+      proxy: true,
+      cookie: { maxAge: 86400000, secure: process.env.NODE_ENV === "production", sameSite: "lax" }
     })
   );
+
+  console.log("✅ Session middleware attached.");
 
   // Auth Routes
   app.post(api.auth.login.path, async (req, res) => {
@@ -278,14 +284,8 @@ export async function registerRoutes(
     res.json({ url: (req.file as any).path });
   });
 
-  // Seeding
-  try {
-    await seedDatabase();
-  } catch (e: any) {
-    console.error("❌ Failed to seed database:", e);
-    (global as any).seedError = e.message;
-    // Don't throw, let the server start
-  }
+  // Seeding removed from synchronous initialization to prevent blocking
+  // and handled once in the background below
 
   // Diagnostics Endpoint
   app.get("/api/diagnostics", async (req, res) => {
@@ -351,6 +351,14 @@ export async function registerRoutes(
     console.error("❌ Critical: Database seeding failed:", err);
   });
 
+
+  // Catch-all for API that didn't match anything - helpful for debugging
+  app.use("/api/*", (req, res) => {
+    console.log(`⚠️ Unmatched API Request: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ message: `API route not found: ${req.originalUrl}` });
+  });
+
+  console.log("🚀 All routes registered successfully.");
   return httpServer;
 }
 

@@ -71,15 +71,19 @@ export const setupPromise = registerRoutes(httpServer, app);
 // Looking at registerRoutes: it awaits seedDatabase() AT THE END. All routes are attached synchronously before that.
 // So we can attach error handler here.
 setupPromise.then(() => {
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
         const status = err.status || err.statusCode || 500;
         const message = err.message || "Internal Server Error";
 
+        console.error(`❌ [Error ${status}] ${req.method} ${req.path}: ${message}`);
+        if (err.stack && process.env.NODE_ENV !== "production") {
+            console.error(err.stack);
+        }
+
         res.status(status).json({ message });
-        // We don't throw here in production because it crashes the process, but in dev it might be useful?
-        // server/index.ts had `throw err`.
-        // If we throw, the process crashes.
-        // Let's keep the logging but maybe not throw?
-        console.error(err);
     });
+    log("App error handler registered.");
+}).catch(err => {
+    log(`❌ Critical: registerRoutes failed during setup: ${err.message}`, "error");
+    console.error(err);
 });

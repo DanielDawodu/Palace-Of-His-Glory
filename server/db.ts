@@ -14,8 +14,8 @@ export const connectDB = async () => {
       socketTimeoutMS: 30000,
       serverSelectionTimeoutMS: 30000,
     });
-    console.log("✅ Connected to MongoDB successfully");
-  } catch (err) {
-    console.error("❌ MongoDB connection error:", err);
+    console.log("✅ Connected to MongoDB successfully to", mongoose.connection.host);
+  } catch (err: any) {
+    console.error("❌ MongoDB connection error:", err.message);
   }
 };
