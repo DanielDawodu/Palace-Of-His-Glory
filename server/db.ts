@@ -10,9 +10,9 @@ export const connectDB = async () => {
   if (!process.env.MONGODB_URI) return;
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      connectTimeoutMS: 30000,
-      socketTimeoutMS: 30000,
-      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 8000,
+      socketTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 8000,
     });
     console.log("✅ Connected to MongoDB successfully to", mongoose.connection.host);
   } catch (err: any) {

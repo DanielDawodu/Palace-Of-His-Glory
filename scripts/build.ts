@@ -66,7 +66,7 @@ async function buildAll() {
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "api/index.js",
+    outfile: "api/_bundle.js", // Build to a separate file
     define: {
       "process.env.NODE_ENV": '"production"',
     },
@@ -75,32 +75,36 @@ async function buildAll() {
     logLevel: "info",
   });
 
-  // Add the Vercel-required export at the end of the generated bundle
-  // We capture the original exports to avoid losing references to 'app' and 'setupPromise'
-  const fs = await import("fs/promises");
-  let bundle = await fs.readFile("api/index.js", "utf-8");
-  bundle += `
-const originalExports = Object.assign({}, exports);
+  // Create a clean, non-minified entry point that requires the bundle
+  // This avoids reference errors with minified variables like 'app'
+  const entryPointContent = `
+const bundle = require('./_bundle.js');
+
 module.exports = async (req, res) => {
-  const application = originalExports.app || originalExports.default || (typeof app !== 'undefined' ? app : null);
-  const setup = originalExports.setupPromise || (typeof setupPromise !== 'undefined' ? setupPromise : null);
-  
-  if (setup) {
+  const app = bundle.app || bundle.default || bundle;
+  const setupPromise = bundle.setupPromise;
+
+  if (setupPromise) {
     try {
-      await setup;
-    } catch (e) {
-      console.error("❌ Vercel async setup failed:", e);
+      // In serverless, we must ensure DB is connected before handling requests
+      await setupPromise;
+    } catch (err) {
+      console.error("❌ Vercel Initialization Error:", err.message);
+      // We don't return 500 here yet, let the app try to handle it or show diagnostics
     }
   }
-  
-  if (!application) {
-    console.error("❌ Vercel Handler: 'app' not found in exports.");
-    return res.status(500).send("Server configuration error: 'app' not found.");
+
+  if (typeof app !== 'function') {
+    console.error("❌ Vercel Handler Error: 'app' is not a function", typeof app);
+    return res.status(500).json({ error: "Server initialization failed: app not found" });
   }
+
+  return app(req, res);
+};
+  `;
   
-  return application(req, res);
-};`;
-  await fs.writeFile("api/index.js", bundle);
+  const fs = await import("fs/promises");
+  await fs.writeFile("api/index.js", entryPointContent.trim());
 }
 
 buildAll().catch((err) => {
