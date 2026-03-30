@@ -23,13 +23,34 @@ export async function registerRoutes(
       const isDatabaseConfigured = !!process.env.MONGODB_URI;
       let dbStatus = "Unknown";
       let counts = { users: 0, events: 0, programmes: 0, staff: 0 };
+      let seedStatus = "Checking...";
 
       if (isDatabaseConfigured) {
         try {
-          await storage.getUserByUsernameCaseInsensitive("Daniel");
+          // Check connection and seed if empty
+          let admins = await storage.getAdmins();
+          if (admins.length === 0) {
+            seedStatus = "Triggering Seed...";
+            await seedDatabase().catch(e => seedStatus = `Seed Failed: ${e.message}`);
+            admins = await storage.getAdmins();
+            seedStatus = seedStatus === "Triggering Seed..." ? "Seed Successful" : seedStatus;
+          } else {
+            seedStatus = "Already Seeded";
+          }
+
           dbStatus = "Connected";
+
+          // Get counts
           const events = await storage.getEvents();
-          counts.events = events.length;
+          const programmes = await storage.getProgrammes();
+          const staff = await storage.getStaff();
+
+          counts = {
+            users: admins.length,
+            events: events.length,
+            programmes: programmes.length,
+            staff: staff.length
+          };
         } catch (e: any) {
           dbStatus = `Connection Error: ${e.message}`;
         }
@@ -39,6 +60,7 @@ export async function registerRoutes(
         database: dbStatus,
         configured: isDatabaseConfigured,
         counts,
+        seed: seedStatus,
         env: process.env.NODE_ENV,
         node: process.version,
         path: req.path
@@ -308,22 +330,28 @@ export async function registerRoutes(
     res.json({ url: (req.file as any).path });
   });
 
-  // Seeding removed from synchronous initialization to prevent blocking
-  // and handled once in the background below
-
   // Diagnostics Endpoint
-  // Diagnostics Endpoint (Supports both direct and rewritten paths)
+  // (Functionality moved to top for regex support)
   app.get(["/api/diagnostics", "/diagnostics"], async (req, res) => {
     try {
       const isDatabaseConfigured = !!process.env.MONGODB_URI;
       let dbStatus = "Unknown";
       let counts = { users: 0, events: 0, programmes: 0, staff: 0 };
-      let seedStatus = (global as any).seedError ? `Failed: ${(global as any).seedError}` : "Success";
+      let seedStatus = "Checking...";
 
       if (isDatabaseConfigured) {
         try {
-          // Check connection
-          await storage.getUserByUsernameCaseInsensitive("Daniel");
+          // Check connection and seed if empty
+          let admins = await storage.getAdmins();
+          if (admins.length === 0) {
+            seedStatus = "Triggering Seed...";
+            await seedDatabase().catch(e => seedStatus = `Seed Failed: ${e.message}`);
+            admins = await storage.getAdmins();
+            seedStatus = seedStatus === "Triggering Seed..." ? "Seed Successful" : seedStatus;
+          } else {
+            seedStatus = "Already Seeded";
+          }
+
           dbStatus = "Connected";
 
           // Get counts
