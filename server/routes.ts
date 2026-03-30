@@ -16,7 +16,26 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // --- CRITICAL VERCEL ROUTING (Moved to top before any await) ---
+  // --- CRITICAL INITIALIZATION (Must happen first for Auth) ---
+  console.log("📂 Connecting to database...");
+  await connectDB();
+
+  app.use(
+    session({
+      store: process.env.MONGODB_URI 
+        ? MongoStore.create({ mongoUrl: process.env.MONGODB_URI }) 
+        : new MemoryStore({ checkPeriod: 86400000 }),
+      name: "palace_sid",
+      secret: "church_secret_key",
+      resave: false,
+      saveUninitialized: false,
+      proxy: true,
+      cookie: { maxAge: 86400000, secure: process.env.NODE_ENV === "production", sameSite: "lax" }
+    })
+  );
+  console.log("✅ Session middleware attached.");
+
+  // --- CRITICAL VERCEL ROUTING ---
   // Use regex to match paths regardless of /api prefix or stripping
   app.get(/.*diagnostics$/, async (req, res) => {
     try {
@@ -72,43 +91,32 @@ export async function registerRoutes(
 
   app.post(/.*login$/, async (req, res) => {
     try {
+      console.log(`🔑 Login attempt for: ${req.body?.username}`);
       const { username, password } = req.body;
-      let user = await storage.getUserByUsernameCaseInsensitive(username);
-      if (!user) user = await storage.getUserByEmailCaseInsensitive(username);
+      let user = await storage.getUserByUsernameCaseInsensitive(username || "");
+      if (!user) user = await storage.getUserByEmailCaseInsensitive(username || "");
 
       if (!user || user.password !== password) {
+        console.warn(`❌ Login failure: Invalid credentials for ${username}`);
         return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      if (!req.session) {
+        console.error("❌ Session middleware failed to initialize!");
+        return res.status(500).json({ error: "Session initialization failed" });
       }
 
       (req.session as any).userId = user.id;
       (req.session as any).username = user.username;
+      
+      console.log(`✅ Login success: ${user.username} (ID: ${user.id})`);
       res.json(user);
     } catch (err: any) {
+      console.error(`❌ Login Error: ${err.message}`);
       res.status(500).json({ error: err.message });
     }
   });
   // --- END CRITICAL VERCEL ROUTING ---
-
-  // Session setup
-  console.log("📂 Connecting to database...");
-  await connectDB();
-  console.log("📂 Database connected. Setting up sessions...");
-
-  app.use(
-    session({
-      store: process.env.MONGODB_URI 
-        ? MongoStore.create({ mongoUrl: process.env.MONGODB_URI }) 
-        : new MemoryStore({ checkPeriod: 86400000 }),
-      name: "palace_sid",
-      secret: "church_secret_key",
-      resave: false,
-      saveUninitialized: false,
-      proxy: true,
-      cookie: { maxAge: 86400000, secure: process.env.NODE_ENV === "production", sameSite: "lax" }
-    })
-  );
-
-  console.log("✅ Session middleware attached.");
 
   app.post(api.auth.logout.path, (req, res) => {
     req.session.destroy(() => {
