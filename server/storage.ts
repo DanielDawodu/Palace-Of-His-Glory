@@ -6,11 +6,11 @@ import {
   type Department, type InsertDepartment,
   type Comment, type InsertComment,
   type Registration, type InsertRegistration
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { 
   UserModel, EventModel, ProgrammeModel, StaffModel, 
   DepartmentModel, CommentModel, RegistrationModel 
-} from "./models";
+} from "./models.js";
 
 export interface IStorage {
   // Users

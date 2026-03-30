@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { api } from "@shared/routes";
+import { storage } from "./storage.js";
+import { api } from "../shared/routes.js";
 import { z } from "zod";
 import session from "express-session";
 import MemoryStoreFactory from "memorystore";
 import MongoStore from "connect-mongo";
-import { upload } from "./cloudinary";
-import { connectDB } from "./db";
-import { insertRegistrationSchema, insertEventSchema, insertProgrammeSchema, insertStaffSchema, insertDepartmentSchema } from "@shared/schema";
+import { upload } from "./cloudinary.js";
+import { connectDB } from "./db.js";
+import { insertRegistrationSchema, insertEventSchema, insertProgrammeSchema, insertStaffSchema, insertDepartmentSchema } from "../shared/schema.js";
 
 const MemoryStore = MemoryStoreFactory(session);
 

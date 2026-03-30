@@ -1,7 +1,7 @@
 // import "dotenv/config";
-import { app, httpServer, setupPromise, log } from "./app";
+import { app, httpServer, setupPromise, log } from "./app.js";
 
-import { serveStatic } from "./static";
+import { serveStatic } from "./static.js";
 
 (async () => {
   await setupPromise;

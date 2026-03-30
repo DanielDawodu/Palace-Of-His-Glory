@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { app, setupPromise } from "../server/app";
+import { app, setupPromise } from "../server/app.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log("🚀 Serverless Function Handler Invoked");
