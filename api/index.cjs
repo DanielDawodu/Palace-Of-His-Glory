@@ -1,4 +1,4 @@
-const bundle = require('./_bundle.js');
+const bundle = require('./_bundle.cjs');
 
 module.exports = async (req, res) => {
   const app = bundle.app || bundle.default || bundle;

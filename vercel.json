@@ -3,15 +3,15 @@
     "rewrites": [
         {
             "source": "/api/test",
-            "destination": "/api/test"
+            "destination": "/api/test.cjs"
         },
         {
             "source": "/api/debug-bundle",
-            "destination": "/api/debug-bundle"
+            "destination": "/api/debug-bundle.cjs"
         },
         {
             "source": "/api/(.*)",
-            "destination": "/api/index"
+            "destination": "/api/index.cjs"
         },
         {
             "source": "/(.*)",

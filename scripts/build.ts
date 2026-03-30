@@ -66,7 +66,7 @@ async function buildAll() {
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "api/_bundle.js", // Build to a separate file
+    outfile: "api/_bundle.cjs", // Renamed to .cjs to force CommonJS
     define: {
       "process.env.NODE_ENV": '"production"',
     },
@@ -78,7 +78,7 @@ async function buildAll() {
   // Create a clean, non-minified entry point that requires the bundle
   // This avoids reference errors with minified variables like 'app'
   const entryPointContent = `
-const bundle = require('./_bundle.js');
+const bundle = require('./_bundle.cjs');
 
 module.exports = async (req, res) => {
   const app = bundle.app || bundle.default || bundle;
@@ -104,7 +104,7 @@ module.exports = async (req, res) => {
   `;
   
   const fs = await import("fs/promises");
-  await fs.writeFile("api/index.js", entryPointContent.trim());
+  await fs.writeFile("api/index.cjs", entryPointContent.trim());
 }
 
 buildAll().catch((err) => {
