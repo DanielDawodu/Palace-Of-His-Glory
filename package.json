@@ -9,7 +9,8 @@
     "vercel-build": "npm run build",
     "start": "node dist/index.cjs",
     "check": "tsc",
-    "create-admin": "tsx scripts/createAdmin.ts"
+    "create-admin": "tsx scripts/createAdmin.ts",
+    "reset-db": "tsx scripts/resetDB.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
