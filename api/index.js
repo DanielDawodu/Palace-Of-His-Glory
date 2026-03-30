@@ -472,9 +472,10 @@ object-assign/index.js:
   *)
 */
 
+const originalExports = Object.assign({}, exports);
 module.exports = async (req, res) => {
-  const application = exports.app || app;
-  const setup = exports.setupPromise || setupPromise;
+  const application = originalExports.app || originalExports.default || (typeof app !== 'undefined' ? app : null);
+  const setup = originalExports.setupPromise || (typeof setupPromise !== 'undefined' ? setupPromise : null);
   
   if (setup) {
     try {
@@ -482,6 +483,11 @@ module.exports = async (req, res) => {
     } catch (e) {
       console.error("❌ Vercel async setup failed:", e);
     }
+  }
+  
+  if (!application) {
+    console.error("❌ Vercel Handler: 'app' not found in exports.");
+    return res.status(500).send("Server configuration error: 'app' not found.");
   }
   
   return application(req, res);

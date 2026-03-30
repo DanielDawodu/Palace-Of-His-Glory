@@ -76,13 +76,14 @@ async function buildAll() {
   });
 
   // Add the Vercel-required export at the end of the generated bundle
-  // This version handles async initialization to prevent 404s/500s on cold starts
+  // We capture the original exports to avoid losing references to 'app' and 'setupPromise'
   const fs = await import("fs/promises");
   let bundle = await fs.readFile("api/index.js", "utf-8");
   bundle += `
+const originalExports = Object.assign({}, exports);
 module.exports = async (req, res) => {
-  const application = exports.app || app;
-  const setup = exports.setupPromise || setupPromise;
+  const application = originalExports.app || originalExports.default || (typeof app !== 'undefined' ? app : null);
+  const setup = originalExports.setupPromise || (typeof setupPromise !== 'undefined' ? setupPromise : null);
   
   if (setup) {
     try {
@@ -90,6 +91,11 @@ module.exports = async (req, res) => {
     } catch (e) {
       console.error("❌ Vercel async setup failed:", e);
     }
+  }
+  
+  if (!application) {
+    console.error("❌ Vercel Handler: 'app' not found in exports.");
+    return res.status(500).send("Server configuration error: 'app' not found.");
   }
   
   return application(req, res);
