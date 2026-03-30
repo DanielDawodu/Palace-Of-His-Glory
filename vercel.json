@@ -2,6 +2,14 @@
     "version": 2,
     "rewrites": [
         {
+            "source": "/api/test",
+            "destination": "/api/test"
+        },
+        {
+            "source": "/api/debug-bundle",
+            "destination": "/api/debug-bundle"
+        },
+        {
             "source": "/api/(.*)",
             "destination": "/api/index"
         },
