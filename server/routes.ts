@@ -16,6 +16,57 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // --- CRITICAL VERCEL ROUTING (Moved to top before any await) ---
+  // Use regex to match paths regardless of /api prefix or stripping
+  app.get(/.*diagnostics$/, async (req, res) => {
+    try {
+      const isDatabaseConfigured = !!process.env.MONGODB_URI;
+      let dbStatus = "Unknown";
+      let counts = { users: 0, events: 0, programmes: 0, staff: 0 };
+
+      if (isDatabaseConfigured) {
+        try {
+          await storage.getUserByUsernameCaseInsensitive("Daniel");
+          dbStatus = "Connected";
+          const events = await storage.getEvents();
+          counts.events = events.length;
+        } catch (e: any) {
+          dbStatus = `Connection Error: ${e.message}`;
+        }
+      }
+      res.json({
+        status: "online",
+        database: dbStatus,
+        configured: isDatabaseConfigured,
+        counts,
+        env: process.env.NODE_ENV,
+        node: process.version,
+        path: req.path
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post(/.*login$/, async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      let user = await storage.getUserByUsernameCaseInsensitive(username);
+      if (!user) user = await storage.getUserByEmailCaseInsensitive(username);
+
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      (req.session as any).userId = user.id;
+      (req.session as any).username = user.username;
+      res.json(user);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  // --- END CRITICAL VERCEL ROUTING ---
+
   // Session setup
   console.log("📂 Connecting to database...");
   await connectDB();
@@ -36,34 +87,6 @@ export async function registerRoutes(
   );
 
   console.log("✅ Session middleware attached.");
-
-  // Auth Routes
-  // Auth Login (Supports both direct and rewritten paths)
-  app.post([api.auth.login.path, "/login"], async (req, res) => {
-    const { username, password } = req.body;
-    // Try username first
-    let user = await storage.getUserByUsernameCaseInsensitive(username);
-
-    // If not found, try email
-    if (!user) {
-      user = await storage.getUserByEmailCaseInsensitive(username);
-    }
-
-    // Simple password check for lite prototype (should use hashing in prod)
-    if (!user) {
-      console.log(`❌ Auth Failure: User "${username}" not found in database.`);
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    if (user.password === password) {
-      console.log(`✅ Auth Success: User "${username}" authenticated.`);
-      (req.session as any).userId = user.id;
-      return res.json({ message: "Login successful", user: { username: user.username, email: user.email } });
-    } else {
-      console.log(`❌ Auth Failure: Password mismatch for user "${username}".`);
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-  });
 
   app.post(api.auth.logout.path, (req, res) => {
     req.session.destroy(() => {
