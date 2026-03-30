@@ -1,7 +1,7 @@
 module.exports = async (req, res) => {
   try {
-    console.log("🔍 Attempting to load _bundle.cjs...");
-    const bundle = require('./_bundle.cjs');
+    console.log("🔍 Attempting to load _bundle.js...");
+    const bundle = require('./_bundle.js');
     console.log("✅ Bundle loaded successfully.");
     
     const app = bundle.app || bundle.default || bundle;
