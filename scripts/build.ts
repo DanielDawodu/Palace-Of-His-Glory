@@ -59,6 +59,27 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  console.log("building vercel bundle...");
+  await esbuild({
+    entryPoints: ["server/app.ts"],
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    outfile: "api/index.js",
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
+    minify: true,
+    external: externals,
+    logLevel: "info",
+  });
+
+  // Add the Vercel-required export at the end of the generated bundle
+  const fs = await import("fs/promises");
+  let bundle = await fs.readFile("api/index.js", "utf-8");
+  bundle += "\nmodule.exports = exports.app || app;";
+  await fs.writeFile("api/index.js", bundle);
 }
 
 buildAll().catch((err) => {

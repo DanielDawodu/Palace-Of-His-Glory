@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "build": "vite build && tsx scripts/build.ts",
+    "vercel-build": "npm run build",
     "start": "node dist/index.cjs",
     "check": "tsc",
     "create-admin": "tsx scripts/createAdmin.ts"
