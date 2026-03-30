@@ -38,7 +38,8 @@ export async function registerRoutes(
   console.log("✅ Session middleware attached.");
 
   // Auth Routes
-  app.post(api.auth.login.path, async (req, res) => {
+  // Auth Login (Supports both direct and rewritten paths)
+  app.post([api.auth.login.path, "/login"], async (req, res) => {
     const { username, password } = req.body;
     // Try username first
     let user = await storage.getUserByUsernameCaseInsensitive(username);
@@ -288,7 +289,8 @@ export async function registerRoutes(
   // and handled once in the background below
 
   // Diagnostics Endpoint
-  app.get("/api/diagnostics", async (req, res) => {
+  // Diagnostics Endpoint (Supports both direct and rewritten paths)
+  app.get(["/api/diagnostics", "/diagnostics"], async (req, res) => {
     try {
       const isDatabaseConfigured = !!process.env.MONGODB_URI;
       let dbStatus = "Unknown";
