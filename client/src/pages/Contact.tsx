@@ -1,4 +1,5 @@
 import { SectionHeader } from "@/components/SectionHeader";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,11 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-white pt-48 pb-16">
+      <SEO
+        title="Contact Us"
+        description="Get in touch with Palace of His Glory International Ministries in Ijebu-Ode, Ogun State. Send a prayer request, ask a question, or find our service times and location."
+        path="/contact"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader title="Contact Us" subtitle="Get in Touch" />
 

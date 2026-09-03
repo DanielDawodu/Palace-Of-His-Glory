@@ -1,16 +1,24 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage.js";
+import { storage, verifyPassword, isBcryptHash } from "./storage.js";
 import { api } from "../shared/routes.js";
 import { z } from "zod";
 import session from "express-session";
 import MemoryStoreFactory from "memorystore";
 import MongoStore from "connect-mongo";
 import { upload } from "./cloudinary.js";
-import { connectDB } from "./db.js";
+import { connectDB, isDbConnected } from "./db.js";
 import { insertRegistrationSchema, insertEventSchema, insertProgrammeSchema, insertStaffSchema, insertDepartmentSchema } from "../shared/schema.js";
 
 const MemoryStore = MemoryStoreFactory(session);
+
+// SESSION_SECRET should always be set via an environment variable in
+// production. We fall back to a generated value so local/dev never crashes,
+// but warn loudly so it doesn't go unnoticed on a real deployment.
+const SESSION_SECRET = process.env.SESSION_SECRET || (() => {
+  console.warn("⚠️ SESSION_SECRET not set in environment - using an insecure default. Set SESSION_SECRET in Vercel env vars before going live.");
+  return "insecure-dev-secret-change-me";
+})();
 
 export async function registerRoutes(
   httpServer: Server,
@@ -26,7 +34,7 @@ export async function registerRoutes(
         ? MongoStore.create({ mongoUrl: process.env.MONGODB_URI }) 
         : new MemoryStore({ checkPeriod: 86400000 }),
       name: "palace_sid",
-      secret: "church_secret_key",
+      secret: SESSION_SECRET,
       resave: false,
       saveUninitialized: false,
       proxy: true,
@@ -40,45 +48,43 @@ export async function registerRoutes(
   app.get(/.*diagnostics$/, async (req, res) => {
     try {
       const isDatabaseConfigured = !!process.env.MONGODB_URI;
-      let dbStatus = "Unknown";
-      let counts = { users: 0, events: 0, programmes: 0, staff: 0 };
       let seedStatus = "Checking...";
 
-      if (isDatabaseConfigured) {
-        try {
-          // Check connection and seed if empty
-          let admins = await storage.getAdmins();
-          if (admins.length === 0) {
-            seedStatus = "Triggering Seed...";
-            await seedDatabase().catch(e => seedStatus = `Seed Failed: ${e.message}`);
-            admins = await storage.getAdmins();
-            seedStatus = seedStatus === "Triggering Seed..." ? "Seed Successful" : seedStatus;
-          } else {
-            seedStatus = "Already Seeded";
-          }
-
-          dbStatus = "Connected";
-
-          // Get counts
-          const events = await storage.getEvents();
-          const programmes = await storage.getProgrammes();
-          const staff = await storage.getStaff();
-
-          counts = {
-            users: admins.length,
-            events: events.length,
-            programmes: programmes.length,
-            staff: staff.length
-          };
-        } catch (e: any) {
-          dbStatus = `Connection Error: ${e.message}`;
+      try {
+        let admins = await storage.getAdmins();
+        if (admins.length === 0) {
+          seedStatus = "Triggering Seed...";
+          await seedDatabase().catch(e => seedStatus = `Seed Failed: ${e.message}`);
+          admins = await storage.getAdmins();
+          seedStatus = seedStatus === "Triggering Seed..." ? "Seed Successful" : seedStatus;
+        } else {
+          seedStatus = "Already Seeded";
         }
+      } catch (e: any) {
+        seedStatus = `Error: ${e.message}`;
       }
+
+      const events = await storage.getEvents();
+      const programmes = await storage.getProgrammes();
+      const staff = await storage.getStaff();
+      const admins = await storage.getAdmins();
+
       res.json({
         status: "online",
-        database: dbStatus,
-        configured: isDatabaseConfigured,
-        counts,
+        // configured: MONGODB_URI is present in env vars
+        // connected: mongoose actually has a live connection right now
+        // storageMode: which storage is ACTUALLY serving requests at this moment
+        database: {
+          configured: isDatabaseConfigured,
+          connected: isDbConnected,
+          storageMode: isDbConnected ? "MongoDB" : "In-Memory (fallback)",
+        },
+        counts: {
+          users: admins.length,
+          events: events.length,
+          programmes: programmes.length,
+          staff: staff.length
+        },
         seed: seedStatus,
         env: process.env.NODE_ENV,
         node: process.version,
@@ -96,9 +102,17 @@ export async function registerRoutes(
       let user = await storage.getUserByUsernameCaseInsensitive(username || "");
       if (!user) user = await storage.getUserByEmailCaseInsensitive(username || "");
 
-      if (!user || user.password !== password) {
+      const passwordOk = user ? await verifyPassword(password || "", user.password) : false;
+
+      if (!user || !passwordOk) {
         console.warn(`❌ Login failure: Invalid credentials for ${username}`);
         return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Transparently upgrade any legacy plaintext password to a bcrypt hash
+      // now that we know it was correct.
+      if (!isBcryptHash(user.password)) {
+        await storage.updateUserPassword(user.id, password);
       }
 
       if (!req.session) {
@@ -110,7 +124,8 @@ export async function registerRoutes(
       (req.session as any).username = user.username;
       
       console.log(`✅ Login success: ${user.username} (ID: ${user.id})`);
-      res.json(user);
+      const { password: _pw, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
     } catch (err: any) {
       console.error(`❌ Login Error: ${err.message}`);
       res.status(500).json({ error: err.message });
@@ -192,7 +207,7 @@ export async function registerRoutes(
 
       const newUser = await storage.createUser({
         username,
-        password, // Note: In a real app, hash this!
+        password, // storage.createUser hashes this before persisting
         email,
         isAdmin: true
       });
@@ -260,6 +275,11 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.staff.delete.path, requireAuth, async (req, res) => {
+    await storage.deleteStaff(req.params.id);
+    res.status(204).send();
+  });
+
   // Departments Routes
   app.get(api.departments.list.path, async (req, res) => {
     const departments = await storage.getDepartments();
@@ -274,6 +294,11 @@ export async function registerRoutes(
     } catch (e: any) {
       res.status(400).json({ message: "Invalid input", details: e.errors || e.message });
     }
+  });
+
+  app.delete(api.departments.delete.path, requireAuth, async (req, res) => {
+    await storage.deleteDepartment(req.params.id);
+    res.status(204).send();
   });
 
   // Comments Routes
@@ -338,75 +363,6 @@ export async function registerRoutes(
     res.json({ url: (req.file as any).path });
   });
 
-  // Diagnostics Endpoint
-  // (Functionality moved to top for regex support)
-  app.get(["/api/diagnostics", "/diagnostics"], async (req, res) => {
-    try {
-      const isDatabaseConfigured = !!process.env.MONGODB_URI;
-      let dbStatus = "Unknown";
-      let counts = { users: 0, events: 0, programmes: 0, staff: 0 };
-      let seedStatus = "Checking...";
-
-      if (isDatabaseConfigured) {
-        try {
-          // Check connection and seed if empty
-          let admins = await storage.getAdmins();
-          if (admins.length === 0) {
-            seedStatus = "Triggering Seed...";
-            await seedDatabase().catch(e => seedStatus = `Seed Failed: ${e.message}`);
-            admins = await storage.getAdmins();
-            seedStatus = seedStatus === "Triggering Seed..." ? "Seed Successful" : seedStatus;
-          } else {
-            seedStatus = "Already Seeded";
-          }
-
-          dbStatus = "Connected";
-
-          // Get counts
-          const users = await storage.getAdmins(); // Reusing getAdmins as a proxy for user count (or add explicit count methods later)
-          const events = await storage.getEvents();
-          const programmes = await storage.getProgrammes();
-          const staff = await storage.getStaff();
-
-          counts = {
-            users: users.length, // This is just admins, but good enough for now
-            events: events.length,
-            programmes: programmes.length,
-            staff: staff.length
-          };
-
-        } catch (e: any) {
-          dbStatus = `Connection Error: ${e.message}`;
-        }
-      } else {
-        dbStatus = "Not Configured (Using Memory)";
-        // In memory stats
-        const events = await storage.getEvents();
-        const programmes = await storage.getProgrammes();
-        const staff = await storage.getStaff();
-        counts = {
-          users: (await storage.getAdmins()).length,
-          events: events.length,
-          programmes: programmes.length,
-          staff: staff.length
-        };
-      }
-
-      res.json({
-        status: "online",
-        environment: process.env.NODE_ENV,
-        storageMode: isDatabaseConfigured ? "Database" : "Memory",
-        databaseStatus: dbStatus,
-        dataCounts: counts,
-        seedStatus: seedStatus,
-        timestamp: new Date().toISOString()
-      });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-
   // Start seeding in background so it doesn't block server startup
   seedDatabase().catch(err => {
     console.error("❌ Critical: Database seeding failed:", err);
@@ -423,32 +379,34 @@ export async function registerRoutes(
   return httpServer;
 }
 
+// Default admin account, seeded only if it doesn't already exist. Set these
+// via environment variables in Vercel; the values below are local-dev-only
+// fallbacks and should never be relied on in production.
+const SEED_ADMIN_USERNAME = process.env.ADMIN_USERNAME || "Daniel";
+const SEED_ADMIN_EMAIL = process.env.ADMIN_EMAIL || "danieldawodu07@gmail.com";
+const SEED_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Daniel@123";
+
+if (!process.env.ADMIN_PASSWORD) {
+  console.warn("⚠️ ADMIN_PASSWORD not set in environment - using an insecure default admin password. Set ADMIN_USERNAME/ADMIN_EMAIL/ADMIN_PASSWORD in Vercel env vars before your event.");
+}
+
 async function seedDatabase() {
   console.log("🌱 Seeding database...");
 
-  // Create Daniel if he doesn't exist
-  const danielByUsername = await storage.getUserByUsernameCaseInsensitive("Daniel");
-  const allUsers = await (storage as any).getUsers?.() || []; // If storage has a way to list all
+  // Create the default admin if they don't exist yet
+  const existingAdmin = await storage.getUserByUsernameCaseInsensitive(SEED_ADMIN_USERNAME);
 
-  if (!danielByUsername) {
-    console.log("👤 Creating user 'Daniel'...");
+  if (!existingAdmin) {
+    console.log(`👤 Creating user '${SEED_ADMIN_USERNAME}'...`);
     await storage.createUser({
-      username: "Daniel",
-      email: "danieldawodu07@gmail.com",
-      password: "Daniel@123",
+      username: SEED_ADMIN_USERNAME,
+      email: SEED_ADMIN_EMAIL,
+      password: SEED_ADMIN_PASSWORD,
       isAdmin: true
     });
-    console.log("✅ User 'Daniel' created successfully.");
-  } else if (danielByUsername.password !== "Daniel@123" || danielByUsername.email !== "danieldawodu07@gmail.com") {
-    console.log("👤 User 'Daniel' exists but data is outdated. Resetting credentials...");
-    // Since we don't have an update method, we'll manually fix it if it's MemStorage
-    // For now, let's just log exactly what's expected.
-    // In a real DB we'd use an update query.
-    danielByUsername.password = "Daniel@123";
-    danielByUsername.email = "danieldawodu07@gmail.com";
-    console.log("✅ User 'Daniel' credentials reset.");
+    console.log(`✅ User '${SEED_ADMIN_USERNAME}' created successfully.`);
   } else {
-    console.log("👤 User 'Daniel' exists with correct credentials.");
+    console.log(`👤 User '${SEED_ADMIN_USERNAME}' already exists - leaving credentials as-is.`);
   }
 
   const existingStaff = await storage.getStaff();

@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import {
   type User, type InsertUser,
   type Event, type InsertEvent,
@@ -11,6 +12,26 @@ import {
   UserModel, EventModel, ProgrammeModel, StaffModel, 
   DepartmentModel, CommentModel, RegistrationModel 
 } from "./models.js";
+import { isDbConnected } from "./db.js";
+
+// A bcrypt hash always starts with $2a$, $2b$ or $2y$ - use this to tell
+// legacy plaintext passwords (from before this fix) apart from hashed ones.
+export function isBcryptHash(value: string): boolean {
+  return /^\$2[aby]\$/.test(value);
+}
+
+export async function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, 10);
+}
+
+export async function verifyPassword(plain: string, stored: string): Promise<boolean> {
+  if (isBcryptHash(stored)) {
+    return bcrypt.compare(plain, stored);
+  }
+  // Legacy plaintext comparison for any pre-existing accounts. Callers are
+  // expected to re-hash and persist the password after a successful legacy match.
+  return plain === stored;
+}
 
 export interface IStorage {
   // Users
@@ -20,6 +41,7 @@ export interface IStorage {
   getUserByEmailCaseInsensitive(email: string): Promise<User | undefined>;
   getAdmins(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserPassword(id: string, newPassword: string): Promise<void>;
 
   // Events
   getEvents(): Promise<Event[]>;
@@ -35,10 +57,12 @@ export interface IStorage {
   // Staff
   getStaff(): Promise<Staff[]>;
   createStaff(staff: InsertStaff): Promise<Staff>;
+  deleteStaff(id: string): Promise<void>;
 
   // Departments
   getDepartments(): Promise<Department[]>;
   createDepartment(department: InsertDepartment): Promise<Department>;
+  deleteDepartment(id: string): Promise<void>;
 
   // Comments
   getComments(eventId: string): Promise<Comment[]>;
@@ -91,8 +115,15 @@ export class MongoStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const user = await UserModel.create(insertUser);
+    const user = await UserModel.create({
+      ...insertUser,
+      password: await hashPassword(insertUser.password),
+    });
     return mapId(user.toJSON()) as unknown as User;
+  }
+
+  async updateUserPassword(id: string, newPassword: string): Promise<void> {
+    await UserModel.findByIdAndUpdate(id, { password: await hashPassword(newPassword) });
   }
 
   // Events
@@ -142,6 +173,10 @@ export class MongoStorage implements IStorage {
     return mapId(staff.toJSON()) as unknown as Staff;
   }
 
+  async deleteStaff(id: string): Promise<void> {
+    await StaffModel.findByIdAndDelete(id);
+  }
+
   // Departments
   async getDepartments(): Promise<Department[]> {
     const depts = await DepartmentModel.find({}).lean();
@@ -151,6 +186,10 @@ export class MongoStorage implements IStorage {
   async createDepartment(insertDept: InsertDepartment): Promise<Department> {
     const dept = await DepartmentModel.create(insertDept);
     return mapId(dept.toJSON()) as unknown as Department;
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    await DepartmentModel.findByIdAndDelete(id);
   }
 
   // Comments
@@ -233,12 +272,23 @@ export class MemStorage implements IStorage {
     const id = this.getId("users");
     const user: User = {
       ...insertUser,
+      password: await hashPassword(insertUser.password),
       id,
       email: insertUser.email ?? null,
       isAdmin: insertUser.isAdmin ?? true
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUserPassword(id: string, newPassword: string): Promise<void> {
+    const existing = this.users.get(id);
+    if (!existing) return;
+    this.users.set(id, { ...existing, password: await hashPassword(newPassword) });
+  }
+
+  async getUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
   }
 
   // Events
@@ -312,6 +362,10 @@ export class MemStorage implements IStorage {
     return staffMember;
   }
 
+  async deleteStaff(id: string): Promise<void> {
+    this.staff.delete(id);
+  }
+
   // Departments
   async getDepartments(): Promise<Department[]> {
     return Array.from(this.departments.values());
@@ -327,6 +381,10 @@ export class MemStorage implements IStorage {
     };
     this.departments.set(id, department);
     return department;
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    this.departments.delete(id);
   }
 
   // Comments
@@ -365,10 +423,42 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Fallback to MemStorage if MONGODB_URI is not provided
-const useDatabase = !!process.env.MONGODB_URI;
-export const storage = useDatabase ? new MongoStorage() : new MemStorage();
+// --- Dynamic storage selection ---
+// IMPORTANT: We used to pick MongoStorage vs MemStorage once, at import time,
+// purely based on whether MONGODB_URI was *set*. That meant if the URI was
+// present but wrong/unreachable (bad password, IP not allow-listed, etc.),
+// every single request would silently fail against a dead Mongo connection
+// instead of falling back - this was the root cause of the admin panel and
+// events API returning errors in production.
+//
+// Now we check the ACTUAL live connection state (isDbConnected, updated by
+// db.ts's mongoose event listeners) on every call, and transparently use
+// MemStorage whenever Mongo isn't really connected. This keeps the site
+// functional (in read/write-but-not-persisted mode) even if the database
+// has connection trouble, rather than showing 404s/500s to visitors.
+const mongoStorage = new MongoStorage();
+const memStorage = new MemStorage();
 
-if (!useDatabase) {
-  console.log("ℹ️ Using In-Memory Storage (Local Development Mode)");
+function getActiveStorage(): IStorage {
+  return isDbConnected ? mongoStorage : memStorage;
+}
+
+function createStorageProxy(): IStorage {
+  const handler: ProxyHandler<IStorage> = {
+    get(_target, prop: keyof IStorage) {
+      const active = getActiveStorage();
+      const value = active[prop];
+      if (typeof value === "function") {
+        return value.bind(active);
+      }
+      return value;
+    },
+  };
+  return new Proxy({} as IStorage, handler);
+}
+
+export const storage: IStorage = createStorageProxy();
+
+if (!process.env.MONGODB_URI) {
+  console.log("ℹ️ MONGODB_URI not set - using In-Memory Storage (Local Development Mode)");
 }

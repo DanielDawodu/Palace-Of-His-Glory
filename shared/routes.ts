@@ -124,6 +124,14 @@ export const api = {
         201: z.custom<Staff>(),
         401: errorSchemas.unauthorized,
       },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/staff/:id',
+      responses: {
+        204: z.void(),
+        401: errorSchemas.unauthorized,
+      },
     }
   },
   departments: {
@@ -140,6 +148,14 @@ export const api = {
       input: insertDepartmentSchema,
       responses: {
         201: z.custom<Department>(),
+        401: errorSchemas.unauthorized,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/departments/:id',
+      responses: {
+        204: z.void(),
         401: errorSchemas.unauthorized,
       },
     }

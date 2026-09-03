@@ -19,10 +19,5 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: "Server initialization failed: app not found" });
   }
 
-  // Deep Diagnostic log for Vercel routing
-  console.log(`📡 Incoming: ${req.method} ${req.url}`);
-  console.log(`   Path: ${req.path}`);
-  console.log(`   Original URL: ${req.originalUrl}`);
-
   return app(req, res);
 };

@@ -1,5 +1,6 @@
 import { useStaff, useDepartments } from "@/hooks/use-content";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SEO } from "@/components/SEO";
 import { Users, Music, Star, BookHeart } from "lucide-react";
 
 export default function About() {
@@ -13,6 +14,11 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-white pt-48 pb-16">
+      <SEO
+        title="About Us"
+        description="Learn about Palace of His Glory International Ministries - our vision, mission, and pastoral leadership team in Ijebu Ode, Ogun State."
+        path="/about"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* HERO */}

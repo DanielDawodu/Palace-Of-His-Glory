@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SEO } from "@/components/SEO";
 import { ArrowRight, Calendar, MapPin, Clock } from "lucide-react";
 import { useEvents } from "@/hooks/use-content";
 
@@ -12,6 +13,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <SEO
+        title="Palace of His Glory International Ministries | Ijebu Ode"
+        description="Raising a generation of champions who enforce the kingdom of God on earth through power, purpose, and purity. Join our Sunday services, Bible study, and special programmes in Ijebu Ode, Ogun State."
+        path="/"
+      />
       {/* LIVE NOTIFICATION BANNER */}
       {liveEvent && (
         <motion.div

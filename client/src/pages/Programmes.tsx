@@ -1,5 +1,6 @@
 import { useProgrammes } from "@/hooks/use-content";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SEO } from "@/components/SEO";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -11,6 +12,11 @@ export default function Programmes() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-48 pb-16">
+      <SEO
+        title="Programmes & Service Times"
+        description="See Palace of His Glory's weekly services and special programmes - Sunday School, Sunday Service, Bible Study, Hour of Glorification, and more."
+        path="/programmes"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader title="Our Programmes" subtitle="Gathering of Saints" />
 

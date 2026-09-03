@@ -34528,6 +34528,9 @@ module.exports = __toCommonJS(app_exports);
 var import_config2 = require("dotenv/config");
 var import_express = __toESM(require_express2(), 1);
 
+// server/storage.ts
+var import_bcryptjs = __toESM(require("bcryptjs"), 1);
+
 // server/models.ts
 var import_mongoose = __toESM(require("mongoose"), 1);
 var transformId = (doc, ret) => {
@@ -34596,7 +34599,63 @@ var DepartmentModel = import_mongoose.default.models.Department || import_mongoo
 var CommentModel = import_mongoose.default.models.Comment || import_mongoose.default.model("Comment", commentSchema);
 var RegistrationModel = import_mongoose.default.models.Registration || import_mongoose.default.model("Registration", registrationSchema);
 
+// server/db.ts
+var import_mongoose2 = __toESM(require("mongoose"), 1);
+if (!process.env.MONGODB_URI) {
+  console.warn(
+    "MONGODB_URI not set. server/db.ts will not connect to a real database. We will fallback to MemStorage."
+  );
+}
+var isDbConnected = false;
+import_mongoose2.default.connection.on("connected", () => {
+  isDbConnected = true;
+  console.log("\u2705 Mongoose connection state: connected");
+});
+import_mongoose2.default.connection.on("disconnected", () => {
+  isDbConnected = false;
+  console.warn("\u26A0\uFE0F Mongoose connection state: disconnected");
+});
+import_mongoose2.default.connection.on("error", (err) => {
+  isDbConnected = false;
+  console.error("\u274C Mongoose connection error:", err.message);
+});
+var connectPromise = null;
+var connectDB = async () => {
+  if (!process.env.MONGODB_URI) return;
+  if (isDbConnected) return;
+  if (connectPromise) return connectPromise;
+  connectPromise = (async () => {
+    try {
+      await import_mongoose2.default.connect(process.env.MONGODB_URI, {
+        connectTimeoutMS: 8e3,
+        socketTimeoutMS: 8e3,
+        serverSelectionTimeoutMS: 8e3
+      });
+      isDbConnected = true;
+      console.log("\u2705 Connected to MongoDB successfully to", import_mongoose2.default.connection.host);
+    } catch (err) {
+      isDbConnected = false;
+      console.error("\u274C MongoDB connection error:", err.message);
+    } finally {
+      connectPromise = null;
+    }
+  })();
+  return connectPromise;
+};
+
 // server/storage.ts
+function isBcryptHash(value) {
+  return /^\$2[aby]\$/.test(value);
+}
+async function hashPassword(plain) {
+  return import_bcryptjs.default.hash(plain, 10);
+}
+async function verifyPassword(plain, stored) {
+  if (isBcryptHash(stored)) {
+    return import_bcryptjs.default.compare(plain, stored);
+  }
+  return plain === stored;
+}
 function mapId(doc) {
   if (!doc) return doc;
   if (doc._id) {
@@ -34633,8 +34692,14 @@ var MongoStorage = class {
     return users.map(mapId);
   }
   async createUser(insertUser) {
-    const user = await UserModel.create(insertUser);
+    const user = await UserModel.create({
+      ...insertUser,
+      password: await hashPassword(insertUser.password)
+    });
     return mapId(user.toJSON());
+  }
+  async updateUserPassword(id, newPassword) {
+    await UserModel.findByIdAndUpdate(id, { password: await hashPassword(newPassword) });
   }
   // Events
   async getEvents() {
@@ -34674,6 +34739,9 @@ var MongoStorage = class {
     const staff = await StaffModel.create(insertStaff);
     return mapId(staff.toJSON());
   }
+  async deleteStaff(id) {
+    await StaffModel.findByIdAndDelete(id);
+  }
   // Departments
   async getDepartments() {
     const depts = await DepartmentModel.find({}).lean();
@@ -34682,6 +34750,9 @@ var MongoStorage = class {
   async createDepartment(insertDept) {
     const dept = await DepartmentModel.create(insertDept);
     return mapId(dept.toJSON());
+  }
+  async deleteDepartment(id) {
+    await DepartmentModel.findByIdAndDelete(id);
   }
   // Comments
   async getComments(eventId) {
@@ -34750,12 +34821,21 @@ var MemStorage = class {
     const id = this.getId("users");
     const user = {
       ...insertUser,
+      password: await hashPassword(insertUser.password),
       id,
       email: insertUser.email ?? null,
       isAdmin: insertUser.isAdmin ?? true
     };
     this.users.set(id, user);
     return user;
+  }
+  async updateUserPassword(id, newPassword) {
+    const existing = this.users.get(id);
+    if (!existing) return;
+    this.users.set(id, { ...existing, password: await hashPassword(newPassword) });
+  }
+  async getUsers() {
+    return Array.from(this.users.values());
   }
   // Events
   async getEvents() {
@@ -34819,6 +34899,9 @@ var MemStorage = class {
     this.staff.set(id, staffMember);
     return staffMember;
   }
+  async deleteStaff(id) {
+    this.staff.delete(id);
+  }
   // Departments
   async getDepartments() {
     return Array.from(this.departments.values());
@@ -34833,6 +34916,9 @@ var MemStorage = class {
     };
     this.departments.set(id, department);
     return department;
+  }
+  async deleteDepartment(id) {
+    this.departments.delete(id);
   }
   // Comments
   async getComments(eventId) {
@@ -34866,10 +34952,27 @@ var MemStorage = class {
     return registration;
   }
 };
-var useDatabase = !!process.env.MONGODB_URI;
-var storage = useDatabase ? new MongoStorage() : new MemStorage();
-if (!useDatabase) {
-  console.log("\u2139\uFE0F Using In-Memory Storage (Local Development Mode)");
+var mongoStorage = new MongoStorage();
+var memStorage = new MemStorage();
+function getActiveStorage() {
+  return isDbConnected ? mongoStorage : memStorage;
+}
+function createStorageProxy() {
+  const handler = {
+    get(_target, prop) {
+      const active = getActiveStorage();
+      const value = active[prop];
+      if (typeof value === "function") {
+        return value.bind(active);
+      }
+      return value;
+    }
+  };
+  return new Proxy({}, handler);
+}
+var storage = createStorageProxy();
+if (!process.env.MONGODB_URI) {
+  console.log("\u2139\uFE0F MONGODB_URI not set - using In-Memory Storage (Local Development Mode)");
 }
 
 // node_modules/zod/v3/external.js
@@ -39096,6 +39199,14 @@ var api = {
         201: external_exports.custom(),
         401: errorSchemas.unauthorized
       }
+    },
+    delete: {
+      method: "DELETE",
+      path: "/api/staff/:id",
+      responses: {
+        204: external_exports.void(),
+        401: errorSchemas.unauthorized
+      }
     }
   },
   departments: {
@@ -39112,6 +39223,14 @@ var api = {
       input: insertDepartmentSchema,
       responses: {
         201: external_exports.custom(),
+        401: errorSchemas.unauthorized
+      }
+    },
+    delete: {
+      method: "DELETE",
+      path: "/api/departments/:id",
+      responses: {
+        204: external_exports.void(),
         401: errorSchemas.unauthorized
       }
     }
@@ -39197,38 +39316,20 @@ var upload = hasCloudinary ? (0, import_multer.default)({ storage: storage2 }) :
   }
 });
 
-// server/db.ts
-var import_mongoose2 = __toESM(require("mongoose"), 1);
-if (!process.env.MONGODB_URI) {
-  console.warn(
-    "MONGODB_URI not set. server/db.ts will not connect to a real database. We will fallback to MemStorage."
-  );
-}
-var connectDB = async () => {
-  if (!process.env.MONGODB_URI) return;
-  try {
-    await import_mongoose2.default.connect(process.env.MONGODB_URI, {
-      connectTimeoutMS: 8e3,
-      socketTimeoutMS: 8e3,
-      serverSelectionTimeoutMS: 8e3
-    });
-    console.log("\u2705 Connected to MongoDB successfully to", import_mongoose2.default.connection.host);
-  } catch (err) {
-    console.error("\u274C MongoDB connection error:", err.message);
-  }
-};
-
 // server/routes.ts
 var MemoryStore = (0, import_memorystore.default)(import_express_session.default);
+var SESSION_SECRET = process.env.SESSION_SECRET || (() => {
+  console.warn("\u26A0\uFE0F SESSION_SECRET not set in environment - using an insecure default. Set SESSION_SECRET in Vercel env vars before going live.");
+  return "insecure-dev-secret-change-me";
+})();
 async function registerRoutes(httpServer2, app2) {
   console.log("\u{1F4C2} Connecting to database...");
   await connectDB();
-  console.log("\u{1F4C2} Database connected. Setting up sessions...");
   app2.use(
     (0, import_express_session.default)({
       store: process.env.MONGODB_URI ? import_connect_mongo.default.create({ mongoUrl: process.env.MONGODB_URI }) : new MemoryStore({ checkPeriod: 864e5 }),
       name: "palace_sid",
-      secret: "church_secret_key",
+      secret: SESSION_SECRET,
       resave: false,
       saveUninitialized: false,
       proxy: true,
@@ -39236,23 +39337,78 @@ async function registerRoutes(httpServer2, app2) {
     })
   );
   console.log("\u2705 Session middleware attached.");
-  app2.post(api.auth.login.path, async (req, res) => {
-    const { username, password } = req.body;
-    let user = await storage.getUserByUsernameCaseInsensitive(username);
-    if (!user) {
-      user = await storage.getUserByEmailCaseInsensitive(username);
+  app2.get(/.*diagnostics$/, async (req, res) => {
+    try {
+      const isDatabaseConfigured = !!process.env.MONGODB_URI;
+      let seedStatus = "Checking...";
+      try {
+        let admins2 = await storage.getAdmins();
+        if (admins2.length === 0) {
+          seedStatus = "Triggering Seed...";
+          await seedDatabase().catch((e) => seedStatus = `Seed Failed: ${e.message}`);
+          admins2 = await storage.getAdmins();
+          seedStatus = seedStatus === "Triggering Seed..." ? "Seed Successful" : seedStatus;
+        } else {
+          seedStatus = "Already Seeded";
+        }
+      } catch (e) {
+        seedStatus = `Error: ${e.message}`;
+      }
+      const events = await storage.getEvents();
+      const programmes = await storage.getProgrammes();
+      const staff = await storage.getStaff();
+      const admins = await storage.getAdmins();
+      res.json({
+        status: "online",
+        // configured: MONGODB_URI is present in env vars
+        // connected: mongoose actually has a live connection right now
+        // storageMode: which storage is ACTUALLY serving requests at this moment
+        database: {
+          configured: isDatabaseConfigured,
+          connected: isDbConnected,
+          storageMode: isDbConnected ? "MongoDB" : "In-Memory (fallback)"
+        },
+        counts: {
+          users: admins.length,
+          events: events.length,
+          programmes: programmes.length,
+          staff: staff.length
+        },
+        seed: seedStatus,
+        env: "production",
+        node: process.version,
+        path: req.path
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
-    if (!user) {
-      console.log(`\u274C Auth Failure: User "${username}" not found in database.`);
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-    if (user.password === password) {
-      console.log(`\u2705 Auth Success: User "${username}" authenticated.`);
+  });
+  app2.post(/.*login$/, async (req, res) => {
+    try {
+      console.log(`\u{1F511} Login attempt for: ${req.body?.username}`);
+      const { username, password } = req.body;
+      let user = await storage.getUserByUsernameCaseInsensitive(username || "");
+      if (!user) user = await storage.getUserByEmailCaseInsensitive(username || "");
+      const passwordOk = user ? await verifyPassword(password || "", user.password) : false;
+      if (!user || !passwordOk) {
+        console.warn(`\u274C Login failure: Invalid credentials for ${username}`);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      if (!isBcryptHash(user.password)) {
+        await storage.updateUserPassword(user.id, password);
+      }
+      if (!req.session) {
+        console.error("\u274C Session middleware failed to initialize!");
+        return res.status(500).json({ error: "Session initialization failed" });
+      }
       req.session.userId = user.id;
-      return res.json({ message: "Login successful", user: { username: user.username, email: user.email } });
-    } else {
-      console.log(`\u274C Auth Failure: Password mismatch for user "${username}".`);
-      return res.status(401).json({ message: "Invalid credentials" });
+      req.session.username = user.username;
+      console.log(`\u2705 Login success: ${user.username} (ID: ${user.id})`);
+      const { password: _pw, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (err) {
+      console.error(`\u274C Login Error: ${err.message}`);
+      res.status(500).json({ error: err.message });
     }
   });
   app2.post(api.auth.logout.path, (req, res) => {
@@ -39314,7 +39470,7 @@ async function registerRoutes(httpServer2, app2) {
       const newUser = await storage.createUser({
         username,
         password,
-        // Note: In a real app, hash this!
+        // storage.createUser hashes this before persisting
         email,
         isAdmin: true
       });
@@ -39370,6 +39526,10 @@ async function registerRoutes(httpServer2, app2) {
       res.status(400).json({ message: "Invalid input", details: e.errors || e.message });
     }
   });
+  app2.delete(api.staff.delete.path, requireAuth, async (req, res) => {
+    await storage.deleteStaff(req.params.id);
+    res.status(204).send();
+  });
   app2.get(api.departments.list.path, async (req, res) => {
     const departments = await storage.getDepartments();
     res.json(departments);
@@ -39382,6 +39542,10 @@ async function registerRoutes(httpServer2, app2) {
     } catch (e) {
       res.status(400).json({ message: "Invalid input", details: e.errors || e.message });
     }
+  });
+  app2.delete(api.departments.delete.path, requireAuth, async (req, res) => {
+    await storage.deleteDepartment(req.params.id);
+    res.status(204).send();
   });
   app2.patch("/api/events/:id/live", requireAuth, async (req, res) => {
     const id = req.params.id;
@@ -39435,55 +39599,6 @@ async function registerRoutes(httpServer2, app2) {
     console.log("\u2705 File uploaded to Cloudinary:", req.file.path);
     res.json({ url: req.file.path });
   });
-  app2.get("/api/diagnostics", async (req, res) => {
-    try {
-      const isDatabaseConfigured = !!process.env.MONGODB_URI;
-      let dbStatus = "Unknown";
-      let counts = { users: 0, events: 0, programmes: 0, staff: 0 };
-      let seedStatus = global.seedError ? `Failed: ${global.seedError}` : "Success";
-      if (isDatabaseConfigured) {
-        try {
-          await storage.getUserByUsernameCaseInsensitive("Daniel");
-          dbStatus = "Connected";
-          const users = await storage.getAdmins();
-          const events = await storage.getEvents();
-          const programmes = await storage.getProgrammes();
-          const staff = await storage.getStaff();
-          counts = {
-            users: users.length,
-            // This is just admins, but good enough for now
-            events: events.length,
-            programmes: programmes.length,
-            staff: staff.length
-          };
-        } catch (e) {
-          dbStatus = `Connection Error: ${e.message}`;
-        }
-      } else {
-        dbStatus = "Not Configured (Using Memory)";
-        const events = await storage.getEvents();
-        const programmes = await storage.getProgrammes();
-        const staff = await storage.getStaff();
-        counts = {
-          users: (await storage.getAdmins()).length,
-          events: events.length,
-          programmes: programmes.length,
-          staff: staff.length
-        };
-      }
-      res.json({
-        status: "online",
-        environment: "production",
-        storageMode: isDatabaseConfigured ? "Database" : "Memory",
-        databaseStatus: dbStatus,
-        dataCounts: counts,
-        seedStatus,
-        timestamp: (/* @__PURE__ */ new Date()).toISOString()
-      });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
-  });
   seedDatabase().catch((err) => {
     console.error("\u274C Critical: Database seeding failed:", err);
   });
@@ -39494,26 +39609,26 @@ async function registerRoutes(httpServer2, app2) {
   console.log("\u{1F680} All routes registered successfully.");
   return httpServer2;
 }
+var SEED_ADMIN_USERNAME = process.env.ADMIN_USERNAME || "Daniel";
+var SEED_ADMIN_EMAIL = process.env.ADMIN_EMAIL || "danieldawodu07@gmail.com";
+var SEED_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Daniel@123";
+if (!process.env.ADMIN_PASSWORD) {
+  console.warn("\u26A0\uFE0F ADMIN_PASSWORD not set in environment - using an insecure default admin password. Set ADMIN_USERNAME/ADMIN_EMAIL/ADMIN_PASSWORD in Vercel env vars before your event.");
+}
 async function seedDatabase() {
   console.log("\u{1F331} Seeding database...");
-  const danielByUsername = await storage.getUserByUsernameCaseInsensitive("Daniel");
-  const allUsers = await storage.getUsers?.() || [];
-  if (!danielByUsername) {
-    console.log("\u{1F464} Creating user 'Daniel'...");
+  const existingAdmin = await storage.getUserByUsernameCaseInsensitive(SEED_ADMIN_USERNAME);
+  if (!existingAdmin) {
+    console.log(`\u{1F464} Creating user '${SEED_ADMIN_USERNAME}'...`);
     await storage.createUser({
-      username: "Daniel",
-      email: "danieldawodu07@gmail.com",
-      password: "Daniel@123",
+      username: SEED_ADMIN_USERNAME,
+      email: SEED_ADMIN_EMAIL,
+      password: SEED_ADMIN_PASSWORD,
       isAdmin: true
     });
-    console.log("\u2705 User 'Daniel' created successfully.");
-  } else if (danielByUsername.password !== "Daniel@123" || danielByUsername.email !== "danieldawodu07@gmail.com") {
-    console.log("\u{1F464} User 'Daniel' exists but data is outdated. Resetting credentials...");
-    danielByUsername.password = "Daniel@123";
-    danielByUsername.email = "danieldawodu07@gmail.com";
-    console.log("\u2705 User 'Daniel' credentials reset.");
+    console.log(`\u2705 User '${SEED_ADMIN_USERNAME}' created successfully.`);
   } else {
-    console.log("\u{1F464} User 'Daniel' exists with correct credentials.");
+    console.log(`\u{1F464} User '${SEED_ADMIN_USERNAME}' already exists - leaving credentials as-is.`);
   }
   const existingStaff = await storage.getStaff();
   if (existingStaff.length === 0) {

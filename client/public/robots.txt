@@ -1,0 +1,7 @@
+# Update the Sitemap URL below once the church's real domain is live.
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /login
+
+Sitemap: https://palaceofhisglory.vercel.app/sitemap.xml

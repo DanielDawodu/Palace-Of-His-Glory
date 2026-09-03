@@ -11,6 +11,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCommentSchema } from "@shared/schema";
 import { z } from "zod";
+import { toEmbeddableVideoUrl } from "@/lib/youtube";
+import { SEO } from "@/components/SEO";
+import { Helmet } from "react-helmet-async";
 
 function CommentSection({ eventId }: { eventId: string }) {
   const { data: comments } = useComments(eventId);
@@ -96,11 +99,48 @@ function CommentSection({ eventId }: { eventId: string }) {
 
 export default function Events() {
   const { data: events, isLoading } = useEvents();
+  const [playingVideo, setPlayingVideo] = useState<{ title: string; url: string } | null>(null);
 
   if (isLoading) return <div className="min-h-screen pt-24 text-center">Loading events...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-48 pb-16">
+      <SEO
+        title="Events & Livestreams"
+        description="Watch Palace of His Glory's services live or catch up on past service recordings. Never miss a message from our Sunday services and special programmes."
+        path="/events"
+      />
+      {events && events.length > 0 && (
+        <Helmet>
+          <script type="application/ld+json">
+            {JSON.stringify(
+              events.map(event => ({
+                "@context": "https://schema.org",
+                "@type": "Event",
+                name: event.title,
+                description: event.description,
+                startDate: new Date(event.date).toISOString(),
+                eventAttendanceMode: event.videoUrl
+                  ? "https://schema.org/OnlineEventAttendanceMode"
+                  : "https://schema.org/OfflineEventAttendanceMode",
+                eventStatus: "https://schema.org/EventScheduled",
+                location: event.videoUrl
+                  ? { "@type": "VirtualLocation", url: toEmbeddableVideoUrl(event.videoUrl) }
+                  : {
+                      "@type": "Place",
+                      name: "Palace of His Glory International Ministries",
+                      address: "7, Alhaji Kujebe Street, Off Asafa Elereku, Degun, Ijebu-Ode, Ogun State",
+                    },
+                organizer: {
+                  "@type": "Organization",
+                  name: "Palace of His Glory International Ministries",
+                  url: "https://palaceofhisglory.vercel.app/",
+                },
+              }))
+            )}
+          </script>
+        </Helmet>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader title="Events & Livestreams" subtitle="Join Us Live" />
 
@@ -114,9 +154,7 @@ export default function Events() {
               {events.find(e => e.isLive)?.videoUrl ? (
                 <iframe
                   className="w-full h-full"
-                  src={events.find(e => e.isLive)!.videoUrl!.includes('youtube.com') || events.find(e => e.isLive)!.videoUrl!.includes('youtu.be')
-                    ? events.find(e => e.isLive)!.videoUrl!.replace('watch?v=', 'embed/').split('&')[0]
-                    : events.find(e => e.isLive)!.videoUrl ?? undefined}
+                  src={toEmbeddableVideoUrl(events.find(e => e.isLive)!.videoUrl!)}
                   title="Live Stream"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -149,7 +187,12 @@ export default function Events() {
                   </div>
                 )}
                 {event.videoUrl && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group cursor-pointer hover:bg-black/40 transition-colors">
+                  <div
+                    role="button"
+                    aria-label={`Play recording of ${event.title}`}
+                    onClick={() => setPlayingVideo({ title: event.title, url: event.videoUrl! })}
+                    className="absolute inset-0 flex items-center justify-center bg-black/30 group cursor-pointer hover:bg-black/40 transition-colors"
+                  >
                     <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center pl-1 shadow-lg group-hover:scale-110 transition-transform">
                       <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[12px] border-l-primary border-b-[8px] border-b-transparent ml-1"></div>
                     </div>
@@ -189,6 +232,25 @@ export default function Events() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!playingVideo} onOpenChange={(open) => !open && setPlayingVideo(null)}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>{playingVideo?.title}</DialogTitle>
+          </DialogHeader>
+          {playingVideo && (
+            <div className="aspect-video bg-black">
+              <iframe
+                className="w-full h-full"
+                src={toEmbeddableVideoUrl(playingVideo.url)}
+                title={playingVideo.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

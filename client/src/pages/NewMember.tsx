@@ -19,6 +19,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Home, ArrowLeft, Heart } from "lucide-react";
 import { Link } from "wouter";
+import { SEO } from "@/components/SEO";
 
 export default function NewMember() {
     const { toast } = useToast();
@@ -62,6 +63,11 @@ export default function NewMember() {
 
     return (
         <div className="min-h-screen bg-gray-50 pt-32 pb-16">
+            <SEO
+                title="Become a New Member"
+                description="Join the Palace of His Glory family. Register as a new member today and take your next step in your walk with God."
+                path="/new-member"
+            />
             <div className="max-w-2xl mx-auto px-4">
                 <Link href="/" className="inline-flex items-center gap-2 text-primary hover:text-secondary mb-8 transition-colors group">
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />

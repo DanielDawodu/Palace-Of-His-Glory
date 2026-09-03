@@ -69,8 +69,18 @@ export function useProgrammes() {
   return useQuery({
     queryKey: [api.programmes.list.path],
     queryFn: async () => {
-      // Return static data immediately for maximum reliability
-      return STATIC_PROGRAMMES;
+      try {
+        const res = await fetch(api.programmes.list.path);
+        if (!res.ok) throw new Error("Failed to fetch programmes");
+        const data = await res.json();
+        // If the API is reachable but genuinely empty, that's real data - trust it.
+        return data as typeof STATIC_PROGRAMMES;
+      } catch (err) {
+        // Network/API failure - fall back to static defaults so the public
+        // site never looks broken (e.g. on convention day with a DB hiccup).
+        console.warn("Programmes API unavailable, showing static fallback:", err);
+        return STATIC_PROGRAMMES;
+      }
     },
   });
 }
@@ -108,8 +118,15 @@ export function useStaff() {
   return useQuery({
     queryKey: [api.staff.list.path],
     queryFn: async () => {
-      // Return static data immediately for maximum reliability
-      return STATIC_STAFF;
+      try {
+        const res = await fetch(api.staff.list.path);
+        if (!res.ok) throw new Error("Failed to fetch staff");
+        const data = await res.json();
+        return data as typeof STATIC_STAFF;
+      } catch (err) {
+        console.warn("Staff API unavailable, showing static fallback:", err);
+        return STATIC_STAFF;
+      }
     },
   });
 }
@@ -130,13 +147,32 @@ export function useCreateStaff() {
   });
 }
 
+export function useDeleteStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const url = buildUrl(api.staff.delete.path, { id });
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete staff member");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.staff.list.path] }),
+  });
+}
+
 // --- DEPARTMENTS ---
 export function useDepartments() {
   return useQuery({
     queryKey: [api.departments.list.path],
     queryFn: async () => {
-      // Return static data immediately for maximum reliability
-      return STATIC_DEPARTMENTS;
+      try {
+        const res = await fetch(api.departments.list.path);
+        if (!res.ok) throw new Error("Failed to fetch departments");
+        const data = await res.json();
+        return data as typeof STATIC_DEPARTMENTS;
+      } catch (err) {
+        console.warn("Departments API unavailable, showing static fallback:", err);
+        return STATIC_DEPARTMENTS;
+      }
     },
   });
 }
@@ -152,6 +188,18 @@ export function useCreateDepartment() {
       });
       if (!res.ok) throw new Error("Failed to create department");
       return await res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.departments.list.path] }),
+  });
+}
+
+export function useDeleteDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const url = buildUrl(api.departments.delete.path, { id });
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete department");
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.departments.list.path] }),
   });

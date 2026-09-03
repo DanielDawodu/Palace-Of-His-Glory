@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEvents, useCreateEvent, useUpdateEventLive, useDeleteEvent, useProgrammes, useCreateProgramme, useDeleteProgramme, useStaff, useCreateStaff, useDepartments, useCreateDepartment, useRegistrations, useAdmins } from "@/hooks/use-content";
+import { useEvents, useCreateEvent, useUpdateEventLive, useDeleteEvent, useProgrammes, useCreateProgramme, useDeleteProgramme, useStaff, useCreateStaff, useDeleteStaff, useDepartments, useCreateDepartment, useDeleteDepartment, useRegistrations, useAdmins } from "@/hooks/use-content";
 import { Plus, Trash2, Calendar, List, Users, Landmark, Radio, Heart, UserPlus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm, Controller } from "react-hook-form";
 import { ImageUpload } from "@/components/ImageUpload";
 import { Switch } from "@/components/ui/switch";
+import { Helmet } from "react-helmet-async";
 
 // Admin Page Components
 function EventsManager() {
@@ -227,6 +228,7 @@ function ProgrammesManager() {
 function StaffManager() {
   const { data: staff } = useStaff();
   const createStaff = useCreateStaff();
+  const deleteStaff = useDeleteStaff();
   const [open, setOpen] = useState(false);
   const { register, handleSubmit, reset, setValue, control } = useForm();
 
@@ -303,6 +305,15 @@ function StaffManager() {
                 <p className="text-sm text-gray-500">{member.role}</p>
               </div>
             </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (confirm("Are you sure?")) deleteStaff.mutate(member.id);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         ))}
       </div>
@@ -313,6 +324,7 @@ function StaffManager() {
 function DepartmentManager() {
   const { data: departments } = useDepartments();
   const createDept = useCreateDepartment();
+  const deleteDept = useDeleteDepartment();
   const [open, setOpen] = useState(false);
   const { register, handleSubmit, reset, control } = useForm();
 
@@ -516,6 +528,10 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-48 pb-12">
+      <Helmet>
+        <title>Admin Dashboard | Palace of His Glory</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex justify-between items-center mt-12 md:mt-20">
           <div>
