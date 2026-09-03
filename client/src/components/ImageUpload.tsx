@@ -36,7 +36,16 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
                 body: formData,
             });
 
-            if (!res.ok) throw new Error("Upload failed");
+            if (!res.ok) {
+                let serverMessage = "Upload failed";
+                try {
+                    const errBody = await res.json();
+                    if (errBody?.message) serverMessage = errBody.message;
+                } catch {
+                    // response wasn't JSON (e.g. a platform-level error page) - keep generic message
+                }
+                throw new Error(serverMessage);
+            }
 
             const data = await res.json();
             onChange(data.url);
@@ -44,11 +53,11 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
                 title: "Success",
                 description: "Image uploaded successfully",
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("❌ Upload error:", error);
             toast({
                 title: "Error",
-                description: "Failed to upload image",
+                description: error?.message || "Failed to upload image",
                 variant: "destructive",
             });
         } finally {
