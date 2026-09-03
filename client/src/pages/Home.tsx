@@ -190,23 +190,15 @@ export default function Home() {
               upcomingEvents.map((event) => (
                 <Link key={event.id} href={`/events`}>
                   <div className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all h-full flex flex-col cursor-pointer">
-                    <div className="relative h-48 overflow-hidden bg-gray-900">
+                    <div className="relative bg-gray-100 overflow-hidden">
                       {event.imageUrl ? (
-                        <>
-                          <img
-                            src={event.imageUrl}
-                            alt=""
-                            aria-hidden="true"
-                            className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60"
-                          />
-                          <img
-                            src={event.imageUrl}
-                            alt={event.title}
-                            className="relative w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                          />
-                        </>
+                        <img
+                          src={event.imageUrl}
+                          alt={event.title}
+                          className="w-full h-auto block group-hover:scale-105 transition-transform duration-500"
+                        />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-primary text-white">
+                        <div className="w-full h-48 flex items-center justify-center bg-primary text-white">
                           <Calendar className="w-12 h-12 opacity-50" />
                         </div>
                       )}

@@ -178,23 +178,11 @@ export default function Events() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {events?.filter(e => !e.isLive).map(event => (
             <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 flex flex-col">
-              <div className="relative h-48 bg-gray-900 overflow-hidden">
+              <div className="relative bg-gray-100">
                 {event.imageUrl ? (
-                  <>
-                    <img
-                      src={event.imageUrl}
-                      alt=""
-                      aria-hidden="true"
-                      className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60"
-                    />
-                    <img
-                      src={event.imageUrl}
-                      alt={event.title}
-                      className="relative w-full h-full object-contain"
-                    />
-                  </>
+                  <img src={event.imageUrl} alt={event.title} className="w-full h-auto block" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary">
+                  <div className="w-full h-48 flex items-center justify-center bg-primary/10 text-primary">
                     <Calendar className="w-12 h-12 opacity-50" />
                   </div>
                 )}
