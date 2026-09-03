@@ -67,10 +67,12 @@ export default function Contact() {
                   </div>
                   <div>
                     <h4 className="font-bold text-lg mb-1 text-secondary">Call Us</h4>
-                    <p className="text-gray-200">
-                      +234 800 123 4567<br />
-                      +234 800 987 6543
-                    </p>
+                    <div className="text-gray-200 flex flex-col space-y-1">
+                      <a href="tel:07055533384" className="hover:text-secondary transition-colors">07055533384</a>
+                      <a href="tel:08140053624" className="hover:text-secondary transition-colors">08140053624</a>
+                      <a href="tel:08159280827" className="hover:text-secondary transition-colors">08159280827</a>
+                      <a href="tel:08058347494" className="hover:text-secondary transition-colors">08058347494</a>
+                    </div>
                   </div>
                 </div>
 

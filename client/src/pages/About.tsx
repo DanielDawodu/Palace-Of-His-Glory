@@ -23,7 +23,7 @@ export default function About() {
 
         {/* HERO */}
         <div className="text-center mb-16">
-          <SectionHeader title="Who We Are" subtitle="About Palace of Glory" />
+          <SectionHeader title="Who We Are" subtitle="About Palace of His Glory" />
           <div className="max-w-3xl mx-auto text-lg text-gray-600 space-y-6">
             <p>
               Palace of His Glory International Ministries is a dynamic, word-based, and spirit-filled church
