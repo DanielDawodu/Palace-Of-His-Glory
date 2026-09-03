@@ -39325,9 +39325,20 @@ var SESSION_SECRET = process.env.SESSION_SECRET || (() => {
 async function registerRoutes(httpServer2, app2) {
   console.log("\u{1F4C2} Connecting to database...");
   await connectDB();
+  let sessionStore;
+  if (process.env.MONGODB_URI) {
+    try {
+      sessionStore = import_connect_mongo.default.create({ mongoUrl: process.env.MONGODB_URI });
+    } catch (err) {
+      console.error("\u274C Failed to initialize MongoStore session store - falling back to MemoryStore. This usually means MONGODB_URI is malformed (check for unescaped special characters in the password, e.g. @ # % / should be percent-encoded). Error:", err.message);
+      sessionStore = new MemoryStore({ checkPeriod: 864e5 });
+    }
+  } else {
+    sessionStore = new MemoryStore({ checkPeriod: 864e5 });
+  }
   app2.use(
     (0, import_express_session.default)({
-      store: process.env.MONGODB_URI ? import_connect_mongo.default.create({ mongoUrl: process.env.MONGODB_URI }) : new MemoryStore({ checkPeriod: 864e5 }),
+      store: sessionStore,
       name: "palace_sid",
       secret: SESSION_SECRET,
       resave: false,

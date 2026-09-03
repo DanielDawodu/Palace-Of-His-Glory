@@ -28,11 +28,28 @@ export async function registerRoutes(
   console.log("📂 Connecting to database...");
   await connectDB();
 
+  // Build the session store defensively: a malformed MONGODB_URI (e.g. a
+  // rotated password with unescaped special characters like @ # % /) can
+  // throw synchronously inside MongoStore.create(). If that isn't caught,
+  // the ENTIRE serverless function fails to initialize and every route
+  // 404s - not just the ones that touch the database. Falling back to
+  // MemoryStore here keeps the site (and login) working even if the Mongo
+  // connection string is broken.
+  let sessionStore: session.Store;
+  if (process.env.MONGODB_URI) {
+    try {
+      sessionStore = MongoStore.create({ mongoUrl: process.env.MONGODB_URI });
+    } catch (err: any) {
+      console.error("❌ Failed to initialize MongoStore session store - falling back to MemoryStore. This usually means MONGODB_URI is malformed (check for unescaped special characters in the password, e.g. @ # % / should be percent-encoded). Error:", err.message);
+      sessionStore = new MemoryStore({ checkPeriod: 86400000 });
+    }
+  } else {
+    sessionStore = new MemoryStore({ checkPeriod: 86400000 });
+  }
+
   app.use(
     session({
-      store: process.env.MONGODB_URI 
-        ? MongoStore.create({ mongoUrl: process.env.MONGODB_URI }) 
-        : new MemoryStore({ checkPeriod: 86400000 }),
+      store: sessionStore,
       name: "palace_sid",
       secret: SESSION_SECRET,
       resave: false,
