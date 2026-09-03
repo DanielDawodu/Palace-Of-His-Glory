@@ -48,7 +48,7 @@ export function Navigation() {
               } bg-white`}>
               <img
                 src="/logo.jpeg"
-                alt="Palace of Glory"
+                alt="Palace of His Glory"
                 className="h-full w-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -62,7 +62,7 @@ export function Navigation() {
                 : "text-lg md:text-2xl mt-3 " + (location === "/" ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" : "text-primary")
                 }`}
             >
-              Palace of Glory
+              Palace of His Glory
             </span>
           </Link>
 

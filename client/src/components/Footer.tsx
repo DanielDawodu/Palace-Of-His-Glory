@@ -12,12 +12,12 @@ export function Footer() {
               <div className="h-10 w-10 overflow-hidden rounded-full border border-white/20 bg-white">
                 <img
                   src="/logo.jpeg"
-                  alt="Palace of Glory"
+                  alt="Palace of His Glory"
                   className="h-full w-full object-cover"
                 />
               </div>
               <span className="font-display text-xl font-bold leading-none text-secondary">
-                Palace of Glory<br />
+                Palace of His Glory<br />
                 <span className="text-sm font-sans text-white/80 font-normal">International Ministries</span>
               </span>
             </div>
@@ -69,9 +69,14 @@ export function Footer() {
                 <MapPin className="h-5 w-5 text-secondary flex-shrink-0 mt-0.5" />
                 <span>7, Alhaji Kujebe Street, Off Asafa Elereku, Degun, Ijebu-Ode, Ogun State</span>
               </li>
-              <li className="flex items-center space-x-3 text-gray-300">
-                <Phone className="h-5 w-5 text-secondary flex-shrink-0" />
-                <span>+234 800 123 4567</span>
+              <li className="flex items-start space-x-3 text-gray-300">
+                <Phone className="h-5 w-5 text-secondary flex-shrink-0 mt-0.5" />
+                <div className="flex flex-col space-y-1">
+                  <a href="tel:07055533384" className="hover:text-white transition-colors">07055533384</a>
+                  <a href="tel:08140053624" className="hover:text-white transition-colors">08140053624</a>
+                  <a href="tel:08159280827" className="hover:text-white transition-colors">08159280827</a>
+                  <a href="tel:08058347494" className="hover:text-white transition-colors">08058347494</a>
+                </div>
               </li>
               <li className="flex items-center space-x-3 text-gray-300">
                 <Mail className="h-5 w-5 text-secondary flex-shrink-0" />
