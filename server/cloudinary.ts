@@ -28,7 +28,15 @@ if (hasCloudinary) {
             return {
                 folder: 'church-assets',
                 allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-                transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
+                // NOTE: intentionally no eager `transformation` here. If the
+                // Cloudinary account has "Strict Transformations" enabled
+                // (Settings -> Security), any ad-hoc transformation applied
+                // at upload time that isn't pre-approved/named gets rejected
+                // with a 403 - and the Cloudinary Node SDK's upload code path
+                // doesn't even parse the real error message for 403 responses,
+                // so it just looks like a generic, unexplained failure.
+                // Uploading the original and letting the frontend control
+                // display size via CSS avoids this entirely.
             };
         },
     });

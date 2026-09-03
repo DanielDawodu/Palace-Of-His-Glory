@@ -370,7 +370,20 @@ export async function registerRoutes(
     console.log("📸 Upload request received");
     console.log("User authenticated:", (req.session as any).userId);
     next();
-  }, upload.single("image"), (req, res) => {
+  }, (req, res, next) => {
+    upload.single("image")(req, res, (err: any) => {
+      if (err) {
+        const httpCode = err.http_code || err.status || err.statusCode || 500;
+        console.error(`❌ Cloudinary upload error (${httpCode}):`, err.message);
+        let message = err.message || "Upload failed";
+        if (httpCode === 403) {
+          message = "Cloudinary rejected the upload (403). This usually means 'Strict Transformations' is enabled on the account, an upload preset restriction, or a credential mismatch. Check Cloudinary Settings -> Security.";
+        }
+        return res.status(httpCode >= 400 && httpCode < 600 ? httpCode : 500).json({ message });
+      }
+      next();
+    });
+  }, (req, res) => {
     if (!req.file) {
       console.error("❌ No file in request");
       return res.status(400).json({ message: "No file uploaded" });

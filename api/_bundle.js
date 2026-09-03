@@ -39301,8 +39301,16 @@ if (hasCloudinary) {
     params: async (_req, _file) => {
       return {
         folder: "church-assets",
-        allowed_formats: ["jpg", "png", "jpeg", "webp"],
-        transformation: [{ width: 1e3, height: 1e3, crop: "limit" }]
+        allowed_formats: ["jpg", "png", "jpeg", "webp"]
+        // NOTE: intentionally no eager `transformation` here. If the
+        // Cloudinary account has "Strict Transformations" enabled
+        // (Settings -> Security), any ad-hoc transformation applied
+        // at upload time that isn't pre-approved/named gets rejected
+        // with a 403 - and the Cloudinary Node SDK's upload code path
+        // doesn't even parse the real error message for 403 responses,
+        // so it just looks like a generic, unexplained failure.
+        // Uploading the original and letting the frontend control
+        // display size via CSS avoids this entirely.
       };
     }
   });
@@ -39602,7 +39610,20 @@ async function registerRoutes(httpServer2, app2) {
     console.log("\u{1F4F8} Upload request received");
     console.log("User authenticated:", req.session.userId);
     next();
-  }, upload.single("image"), (req, res) => {
+  }, (req, res, next) => {
+    upload.single("image")(req, res, (err) => {
+      if (err) {
+        const httpCode = err.http_code || err.status || err.statusCode || 500;
+        console.error(`\u274C Cloudinary upload error (${httpCode}):`, err.message);
+        let message = err.message || "Upload failed";
+        if (httpCode === 403) {
+          message = "Cloudinary rejected the upload (403). This usually means 'Strict Transformations' is enabled on the account, an upload preset restriction, or a credential mismatch. Check Cloudinary Settings -> Security.";
+        }
+        return res.status(httpCode >= 400 && httpCode < 600 ? httpCode : 500).json({ message });
+      }
+      next();
+    });
+  }, (req, res) => {
     if (!req.file) {
       console.error("\u274C No file in request");
       return res.status(400).json({ message: "No file uploaded" });
