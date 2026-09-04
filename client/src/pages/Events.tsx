@@ -174,10 +174,13 @@ export default function Events() {
           </div>
         )}
 
-        {/* Events Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Events Grid - masonry layout: images keep their natural size/shape
+            (no cropping) so cards naturally stagger in height instead of
+            forcing every card to match, which would require cropping or
+            shrinking some images. */}
+        <div className="columns-1 md:columns-2 lg:columns-3 gap-8 [column-fill:_balance]">
           {events?.filter(e => !e.isLive).map(event => (
-            <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 flex flex-col">
+            <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 break-inside-avoid mb-8">
               <div className="relative bg-gray-100">
                 {event.imageUrl ? (
                   <img src={event.imageUrl} alt={event.title} className="w-full h-auto block" />
