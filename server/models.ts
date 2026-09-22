@@ -67,6 +67,13 @@ const registrationSchema = new Schema({
   address: { type: String, required: true },
 }, commonSchemaOptions);
 
+const galleryItemSchema = new Schema({
+  type: { type: String, required: true, enum: ["image", "video"] },
+  mediaUrl: { type: String, required: true },
+  caption: { type: String },
+  eventTag: { type: String },
+}, commonSchemaOptions);
+
 // Check if models exist before creating them to avoid overwrite errors during hot reload
 export const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
 export const EventModel = mongoose.models.Event || mongoose.model('Event', eventSchema);
@@ -75,3 +82,4 @@ export const StaffModel = mongoose.models.Staff || mongoose.model('Staff', staff
 export const DepartmentModel = mongoose.models.Department || mongoose.model('Department', departmentSchema);
 export const CommentModel = mongoose.models.Comment || mongoose.model('Comment', commentSchema);
 export const RegistrationModel = mongoose.models.Registration || mongoose.model('Registration', registrationSchema);
+export const GalleryItemModel = mongoose.models.GalleryItem || mongoose.model('GalleryItem', galleryItemSchema);

@@ -28,6 +28,7 @@ export function Navigation() {
     { name: "About Us", href: "/about" },
     { name: "Programmes", href: "/programmes" },
     { name: "Events", href: "/events" },
+    { name: "Gallery", href: "/gallery" },
     { name: "Contact", href: "/contact" },
   ];
 

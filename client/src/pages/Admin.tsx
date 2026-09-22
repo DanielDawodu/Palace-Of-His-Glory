@@ -10,15 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEvents, useCreateEvent, useUpdateEventLive, useDeleteEvent, useProgrammes, useCreateProgramme, useDeleteProgramme, useStaff, useCreateStaff, useDeleteStaff, useDepartments, useCreateDepartment, useDeleteDepartment, useRegistrations, useAdmins } from "@/hooks/use-content";
-import { Plus, Trash2, Calendar, List, Users, Landmark, Radio, Heart, UserPlus } from "lucide-react";
+import { useEvents, useCreateEvent, useUpdateEventLive, useDeleteEvent, useProgrammes, useCreateProgramme, useDeleteProgramme, useStaff, useCreateStaff, useDeleteStaff, useDepartments, useCreateDepartment, useDeleteDepartment, useRegistrations, useAdmins, useGallery, useCreateGalleryItem, useDeleteGalleryItem } from "@/hooks/use-content";
+import { Plus, Trash2, Calendar, List, Users, Landmark, Radio, Heart, UserPlus, Images, Video as VideoIcon, Youtube } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useForm, Controller } from "react-hook-form";
 import { ImageUpload } from "@/components/ImageUpload";
+import { MediaUpload } from "@/components/MediaUpload";
 import { Switch } from "@/components/ui/switch";
 import { Helmet } from "react-helmet-async";
+import { isYouTubeUrl } from "@/lib/youtube";
 
 // Admin Page Components
 function EventsManager() {
@@ -321,6 +323,165 @@ function StaffManager() {
   );
 }
 
+function GalleryManager() {
+  const { data: items } = useGallery();
+  const createItem = useCreateGalleryItem();
+  const deleteItem = useDeleteGalleryItem();
+  const [open, setOpen] = useState(false);
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  const [videoSource, setVideoSource] = useState<"upload" | "youtube">("upload");
+  const { register, handleSubmit, reset, control, watch, setValue } = useForm({
+    defaultValues: { type: "image", mediaUrl: "", caption: "", eventTag: "" }
+  });
+
+  const onSubmit = (data: any) => {
+    if (!data.mediaUrl) {
+      return;
+    }
+    createItem.mutate(
+      { type: mediaType, mediaUrl: data.mediaUrl, caption: data.caption, eventTag: data.eventTag },
+      {
+        onSuccess: () => {
+          setOpen(false);
+          reset();
+          setMediaType("image");
+          setVideoSource("upload");
+        }
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">Manage Gallery</h2>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="w-4 h-4 mr-2" /> Add Photo/Video</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add to Gallery</DialogTitle></DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Label>Type</Label>
+                <div className="flex gap-2 mt-1">
+                  <Button
+                    type="button"
+                    variant={mediaType === "image" ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => { setMediaType("image"); setValue("mediaUrl", ""); }}
+                  >
+                    Photo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={mediaType === "video" ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => { setMediaType("video"); setValue("mediaUrl", ""); }}
+                  >
+                    <VideoIcon className="w-4 h-4 mr-1" /> Video
+                  </Button>
+                </div>
+              </div>
+
+              {mediaType === "video" && (
+                <div>
+                  <Label>Video Source</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Button
+                      type="button"
+                      variant={videoSource === "upload" ? "default" : "outline"}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => { setVideoSource("upload"); setValue("mediaUrl", ""); }}
+                    >
+                      Upload File
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={videoSource === "youtube" ? "default" : "outline"}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => { setVideoSource("youtube"); setValue("mediaUrl", ""); }}
+                    >
+                      <Youtube className="w-4 h-4 mr-1" /> YouTube Link
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <Label>{mediaType === "image" ? "Photo" : videoSource === "upload" ? "Video File" : "YouTube URL"}</Label>
+                {mediaType === "video" && videoSource === "youtube" ? (
+                  <Input
+                    {...register("mediaUrl", { required: true })}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                ) : (
+                  <Controller
+                    name="mediaUrl"
+                    control={control}
+                    rules={{ required: true }}
+                    render={({ field }) => (
+                      <MediaUpload value={field.value} mediaType={mediaType} onChange={field.onChange} />
+                    )}
+                  />
+                )}
+              </div>
+
+              <div>
+                <Label>Caption (optional)</Label>
+                <Input {...register("caption")} placeholder="e.g. Sunday Service, September 2026" />
+              </div>
+
+              <div>
+                <Label>Event Tag (optional)</Label>
+                <Input {...register("eventTag")} placeholder="e.g. 2026 Annual Convention" />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={createItem.isPending || !watch("mediaUrl")}>
+                {createItem.isPending ? "Adding..." : "Add to Gallery"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {items?.map((item: any) => (
+          <div key={item.id} className="relative rounded-lg overflow-hidden shadow bg-black group aspect-square">
+            {item.type === "image" ? (
+              <img src={item.mediaUrl} className="w-full h-full object-cover" />
+            ) : isYouTubeUrl(item.mediaUrl) ? (
+              <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                <Youtube className="w-10 h-10 text-white/70" />
+              </div>
+            ) : (
+              <video src={item.mediaUrl} className="w-full h-full object-cover" muted />
+            )}
+            <button
+              onClick={() => {
+                if (confirm("Delete this item?")) deleteItem.mutate(item.id);
+              }}
+              className="absolute top-2 right-2 p-1.5 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            {item.caption && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                <p className="text-white text-xs line-clamp-1">{item.caption}</p>
+              </div>
+            )}
+          </div>
+        ))}
+        {items?.length === 0 && (
+          <p className="col-span-full text-center text-gray-400 py-8">No gallery items yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DepartmentManager() {
   const { data: departments } = useDepartments();
   const createDept = useCreateDepartment();
@@ -541,9 +702,12 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="events" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-8 bg-white p-1 rounded-lg border border-gray-200">
+          <TabsList className="grid w-full grid-cols-7 mb-8 bg-white p-1 rounded-lg border border-gray-200">
             <TabsTrigger value="events" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" /> Events
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="flex items-center gap-2">
+              <Images className="w-4 h-4" /> Gallery
             </TabsTrigger>
             <TabsTrigger value="programmes" className="flex items-center gap-2">
               <List className="w-4 h-4" /> Programmes
@@ -570,6 +734,9 @@ export default function Admin() {
 
           <TabsContent value="events">
             <EventsManager />
+          </TabsContent>
+          <TabsContent value="gallery">
+            <GalleryManager />
           </TabsContent>
           <TabsContent value="programmes">
             <ProgrammesManager />

@@ -24,10 +24,14 @@ if (hasCloudinary) {
     // Setup Multer Storage for Cloudinary
     storage = new CloudinaryStorage({
         cloudinary: cloudinary,
-        params: async (_req, _file) => {
+        params: async (_req, file) => {
+            const isVideo = file.mimetype.startsWith('video/');
             return {
                 folder: 'church-assets',
-                allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+                resource_type: isVideo ? 'video' : 'image',
+                allowed_formats: isVideo
+                    ? ['mp4', 'mov', 'webm', 'mkv', 'avi']
+                    : ['jpg', 'png', 'jpeg', 'webp'],
                 // NOTE: intentionally no eager `transformation` here. If the
                 // Cloudinary account has "Strict Transformations" enabled
                 // (Settings -> Security), any ad-hoc transformation applied
@@ -44,7 +48,18 @@ if (hasCloudinary) {
     console.warn("⚠️ Cloudinary not configured. Uploads will fail.");
 }
 
-export const upload = hasCloudinary ? multer({ storage: storage }) : multer({
+export const upload = hasCloudinary ? multer({
+    storage: storage,
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB - matches Cloudinary's free-tier video file size cap
+    fileFilter: (_req, file, cb) => {
+        const isImage = file.mimetype.startsWith('image/');
+        const isVideo = file.mimetype.startsWith('video/');
+        if (!isImage && !isVideo) {
+            return cb(new Error("Only image and video files are allowed"));
+        }
+        cb(null, true);
+    },
+}) : multer({
     storage: multer.memoryStorage(),
     fileFilter: (_req, _file, cb) => {
         cb(new Error("Cloudinary not configured - Uploads disabled"));

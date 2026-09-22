@@ -7,12 +7,14 @@ import {
   insertDepartmentSchema,
   insertCommentSchema,
   insertRegistrationSchema,
+  insertGalleryItemSchema,
   type Event,
   type Programme,
   type Staff,
   type Department,
   type Comment,
   type Registration,
+  type GalleryItem,
   type User
 } from './schema';
 
@@ -192,6 +194,32 @@ export const api = {
       input: insertRegistrationSchema,
       responses: {
         201: z.custom<Registration>(),
+      },
+    }
+  },
+  gallery: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/gallery',
+      responses: {
+        200: z.array(z.custom<GalleryItem>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/gallery',
+      input: insertGalleryItemSchema,
+      responses: {
+        201: z.custom<GalleryItem>(),
+        401: errorSchemas.unauthorized,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/gallery/:id',
+      responses: {
+        204: z.void(),
+        401: errorSchemas.unauthorized,
       },
     }
   }

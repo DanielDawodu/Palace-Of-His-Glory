@@ -8,7 +8,7 @@ import MemoryStoreFactory from "memorystore";
 import MongoStore from "connect-mongo";
 import { upload } from "./cloudinary.js";
 import { connectDB, isDbConnected } from "./db.js";
-import { insertRegistrationSchema, insertEventSchema, insertProgrammeSchema, insertStaffSchema, insertDepartmentSchema } from "../shared/schema.js";
+import { insertRegistrationSchema, insertEventSchema, insertProgrammeSchema, insertStaffSchema, insertDepartmentSchema, insertGalleryItemSchema } from "../shared/schema.js";
 
 const MemoryStore = MemoryStoreFactory(session);
 
@@ -362,6 +362,27 @@ export async function registerRoutes(
       }
       res.status(400).json({ message: "Invalid input", details: e.message });
     }
+  });
+
+  // Gallery Routes
+  app.get(api.gallery.list.path, async (req, res) => {
+    const items = await storage.getGalleryItems();
+    res.json(items);
+  });
+
+  app.post(api.gallery.create.path, requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertGalleryItemSchema.parse(req.body);
+      const item = await storage.createGalleryItem(validatedData);
+      res.status(201).json(item);
+    } catch (e: any) {
+      res.status(400).json({ message: "Invalid input", details: e.errors || e.message });
+    }
+  });
+
+  app.delete(api.gallery.delete.path, requireAuth, async (req, res) => {
+    await storage.deleteGalleryItem(req.params.id);
+    res.status(204).send();
   });
 
 

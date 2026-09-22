@@ -92,6 +92,19 @@ export const registrationSchema = insertRegistrationSchema.extend({
   createdAt: z.date().optional(),
 });
 
+// Gallery (photos & videos, admin-posted, shown on a combined Media page)
+export const insertGalleryItemSchema = z.object({
+  type: z.enum(["image", "video"]),
+  mediaUrl: z.string().min(1, "Media URL is required"), // Cloudinary URL for uploads, or a YouTube URL for videos
+  caption: z.string().optional().nullable(),
+  eventTag: z.string().optional().nullable(), // freeform label, e.g. "2026 Annual Convention" - not a hard link to an Event record
+});
+
+export const galleryItemSchema = insertGalleryItemSchema.extend({
+  id: z.string(),
+  createdAt: z.date().optional(),
+});
+
 // Types
 export type User = z.infer<typeof userSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -107,3 +120,5 @@ export type Comment = z.infer<typeof commentSchema>;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type Registration = z.infer<typeof registrationSchema>;
 export type InsertRegistration = z.infer<typeof insertRegistrationSchema>;
+export type GalleryItem = z.infer<typeof galleryItemSchema>;
+export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;

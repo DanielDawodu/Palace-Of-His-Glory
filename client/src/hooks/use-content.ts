@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
 import type {
-  InsertEvent, InsertProgramme, InsertStaff, InsertDepartment, InsertComment
+  InsertEvent, InsertProgramme, InsertStaff, InsertDepartment, InsertComment, InsertGalleryItem
 } from "@shared/schema";
 import { STATIC_STAFF, STATIC_PROGRAMMES, STATIC_DEPARTMENTS } from "@/lib/static-data";
 
@@ -267,5 +267,52 @@ export function useAdmins() {
       }
       return await res.json();
     },
+  });
+}
+
+// --- GALLERY ---
+export function useGallery() {
+  return useQuery({
+    queryKey: [api.gallery.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.gallery.list.path);
+      if (!res.ok) throw new Error("Failed to fetch gallery");
+      return await res.json();
+    },
+  });
+}
+
+export function useCreateGalleryItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: InsertGalleryItem) => {
+      const res = await fetch(api.gallery.create.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        let message = "Failed to add to gallery";
+        try {
+          const body = await res.json();
+          if (body?.message) message = body.message;
+        } catch { /* not JSON */ }
+        throw new Error(message);
+      }
+      return await res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.gallery.list.path] }),
+  });
+}
+
+export function useDeleteGalleryItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const url = buildUrl(api.gallery.delete.path, { id });
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete gallery item");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.gallery.list.path] }),
   });
 }

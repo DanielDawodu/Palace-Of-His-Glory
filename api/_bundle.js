@@ -34591,6 +34591,12 @@ var registrationSchema = new import_mongoose.Schema({
   email: { type: String, required: true },
   address: { type: String, required: true }
 }, commonSchemaOptions);
+var galleryItemSchema = new import_mongoose.Schema({
+  type: { type: String, required: true, enum: ["image", "video"] },
+  mediaUrl: { type: String, required: true },
+  caption: { type: String },
+  eventTag: { type: String }
+}, commonSchemaOptions);
 var UserModel = import_mongoose.default.models.User || import_mongoose.default.model("User", userSchema);
 var EventModel = import_mongoose.default.models.Event || import_mongoose.default.model("Event", eventSchema);
 var ProgrammeModel = import_mongoose.default.models.Programme || import_mongoose.default.model("Programme", programmeSchema);
@@ -34598,6 +34604,7 @@ var StaffModel = import_mongoose.default.models.Staff || import_mongoose.default
 var DepartmentModel = import_mongoose.default.models.Department || import_mongoose.default.model("Department", departmentSchema);
 var CommentModel = import_mongoose.default.models.Comment || import_mongoose.default.model("Comment", commentSchema);
 var RegistrationModel = import_mongoose.default.models.Registration || import_mongoose.default.model("Registration", registrationSchema);
+var GalleryItemModel = import_mongoose.default.models.GalleryItem || import_mongoose.default.model("GalleryItem", galleryItemSchema);
 
 // server/db.ts
 var import_mongoose2 = __toESM(require("mongoose"), 1);
@@ -34772,6 +34779,18 @@ var MongoStorage = class {
     const reg = await RegistrationModel.create(insertReg);
     return mapId(reg.toJSON());
   }
+  // Gallery
+  async getGalleryItems() {
+    const items = await GalleryItemModel.find({}).sort({ createdAt: -1 }).lean();
+    return items.map(mapId);
+  }
+  async createGalleryItem(insertItem) {
+    const item = await GalleryItemModel.create(insertItem);
+    return mapId(item.toJSON());
+  }
+  async deleteGalleryItem(id) {
+    await GalleryItemModel.findByIdAndDelete(id);
+  }
 };
 var MemStorage = class {
   users;
@@ -34781,6 +34800,7 @@ var MemStorage = class {
   departments;
   comments;
   registrations;
+  galleryItems;
   currentId;
   constructor() {
     this.users = /* @__PURE__ */ new Map();
@@ -34790,7 +34810,8 @@ var MemStorage = class {
     this.departments = /* @__PURE__ */ new Map();
     this.comments = /* @__PURE__ */ new Map();
     this.registrations = /* @__PURE__ */ new Map();
-    this.currentId = { users: 1, events: 1, programmes: 1, staff: 1, departments: 1, comments: 1, registrations: 1 };
+    this.galleryItems = /* @__PURE__ */ new Map();
+    this.currentId = { users: 1, events: 1, programmes: 1, staff: 1, departments: 1, comments: 1, registrations: 1, galleryItems: 1 };
   }
   getId(collection) {
     return (this.currentId[collection]++).toString();
@@ -34950,6 +34971,27 @@ var MemStorage = class {
     };
     this.registrations.set(id, registration);
     return registration;
+  }
+  // Gallery
+  async getGalleryItems() {
+    return Array.from(this.galleryItems.values()).sort(
+      (a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)
+    );
+  }
+  async createGalleryItem(insertItem) {
+    const id = this.getId("galleryItems");
+    const item = {
+      ...insertItem,
+      id,
+      caption: insertItem.caption ?? null,
+      eventTag: insertItem.eventTag ?? null,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    this.galleryItems.set(id, item);
+    return item;
+  }
+  async deleteGalleryItem(id) {
+    this.galleryItems.delete(id);
   }
 };
 var mongoStorage = new MongoStorage();
@@ -39090,6 +39132,18 @@ var registrationSchema2 = insertRegistrationSchema.extend({
   id: external_exports.string(),
   createdAt: external_exports.date().optional()
 });
+var insertGalleryItemSchema = external_exports.object({
+  type: external_exports.enum(["image", "video"]),
+  mediaUrl: external_exports.string().min(1, "Media URL is required"),
+  // Cloudinary URL for uploads, or a YouTube URL for videos
+  caption: external_exports.string().optional().nullable(),
+  eventTag: external_exports.string().optional().nullable()
+  // freeform label, e.g. "2026 Annual Convention" - not a hard link to an Event record
+});
+var galleryItemSchema2 = insertGalleryItemSchema.extend({
+  id: external_exports.string(),
+  createdAt: external_exports.date().optional()
+});
 
 // shared/routes.ts
 var errorSchemas = {
@@ -39269,6 +39323,32 @@ var api = {
         201: external_exports.custom()
       }
     }
+  },
+  gallery: {
+    list: {
+      method: "GET",
+      path: "/api/gallery",
+      responses: {
+        200: external_exports.array(external_exports.custom())
+      }
+    },
+    create: {
+      method: "POST",
+      path: "/api/gallery",
+      input: insertGalleryItemSchema,
+      responses: {
+        201: external_exports.custom(),
+        401: errorSchemas.unauthorized
+      }
+    },
+    delete: {
+      method: "DELETE",
+      path: "/api/gallery/:id",
+      responses: {
+        204: external_exports.void(),
+        401: errorSchemas.unauthorized
+      }
+    }
   }
 };
 
@@ -39298,10 +39378,12 @@ var storage2;
 if (hasCloudinary) {
   storage2 = new import_multer_storage_cloudinary.CloudinaryStorage({
     cloudinary: import_cloudinary.v2,
-    params: async (_req, _file) => {
+    params: async (_req, file) => {
+      const isVideo = file.mimetype.startsWith("video/");
       return {
         folder: "church-assets",
-        allowed_formats: ["jpg", "png", "jpeg", "webp"]
+        resource_type: isVideo ? "video" : "image",
+        allowed_formats: isVideo ? ["mp4", "mov", "webm", "mkv", "avi"] : ["jpg", "png", "jpeg", "webp"]
         // NOTE: intentionally no eager `transformation` here. If the
         // Cloudinary account has "Strict Transformations" enabled
         // (Settings -> Security), any ad-hoc transformation applied
@@ -39317,7 +39399,19 @@ if (hasCloudinary) {
 } else {
   console.warn("\u26A0\uFE0F Cloudinary not configured. Uploads will fail.");
 }
-var upload = hasCloudinary ? (0, import_multer.default)({ storage: storage2 }) : (0, import_multer.default)({
+var upload = hasCloudinary ? (0, import_multer.default)({
+  storage: storage2,
+  limits: { fileSize: 100 * 1024 * 1024 },
+  // 100MB - matches Cloudinary's free-tier video file size cap
+  fileFilter: (_req, file, cb) => {
+    const isImage = file.mimetype.startsWith("image/");
+    const isVideo = file.mimetype.startsWith("video/");
+    if (!isImage && !isVideo) {
+      return cb(new Error("Only image and video files are allowed"));
+    }
+    cb(null, true);
+  }
+}) : (0, import_multer.default)({
   storage: import_multer.default.memoryStorage(),
   fileFilter: (_req, _file, cb) => {
     cb(new Error("Cloudinary not configured - Uploads disabled"));
@@ -39605,6 +39699,23 @@ async function registerRoutes(httpServer2, app2) {
       }
       res.status(400).json({ message: "Invalid input", details: e.message });
     }
+  });
+  app2.get(api.gallery.list.path, async (req, res) => {
+    const items = await storage.getGalleryItems();
+    res.json(items);
+  });
+  app2.post(api.gallery.create.path, requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertGalleryItemSchema.parse(req.body);
+      const item = await storage.createGalleryItem(validatedData);
+      res.status(201).json(item);
+    } catch (e) {
+      res.status(400).json({ message: "Invalid input", details: e.errors || e.message });
+    }
+  });
+  app2.delete(api.gallery.delete.path, requireAuth, async (req, res) => {
+    await storage.deleteGalleryItem(req.params.id);
+    res.status(204).send();
   });
   app2.post("/api/upload", requireAuth, (req, res, next) => {
     console.log("\u{1F4F8} Upload request received");

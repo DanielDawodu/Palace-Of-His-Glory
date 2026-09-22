@@ -6,11 +6,12 @@ import {
   type Staff, type InsertStaff,
   type Department, type InsertDepartment,
   type Comment, type InsertComment,
-  type Registration, type InsertRegistration
+  type Registration, type InsertRegistration,
+  type GalleryItem, type InsertGalleryItem
 } from "../shared/schema.js";
 import { 
   UserModel, EventModel, ProgrammeModel, StaffModel, 
-  DepartmentModel, CommentModel, RegistrationModel 
+  DepartmentModel, CommentModel, RegistrationModel, GalleryItemModel
 } from "./models.js";
 import { isDbConnected } from "./db.js";
 
@@ -71,6 +72,11 @@ export interface IStorage {
   // Registrations
   getRegistrations(): Promise<Registration[]>;
   createRegistration(registration: InsertRegistration): Promise<Registration>;
+
+  // Gallery
+  getGalleryItems(): Promise<GalleryItem[]>;
+  createGalleryItem(item: InsertGalleryItem): Promise<GalleryItem>;
+  deleteGalleryItem(id: string): Promise<void>;
 }
 
 function mapId(doc: any) {
@@ -213,6 +219,21 @@ export class MongoStorage implements IStorage {
     const reg = await RegistrationModel.create(insertReg);
     return mapId(reg.toJSON()) as unknown as Registration;
   }
+
+  // Gallery
+  async getGalleryItems(): Promise<GalleryItem[]> {
+    const items = await GalleryItemModel.find({}).sort({ createdAt: -1 }).lean();
+    return items.map(mapId) as unknown as GalleryItem[];
+  }
+
+  async createGalleryItem(insertItem: InsertGalleryItem): Promise<GalleryItem> {
+    const item = await GalleryItemModel.create(insertItem);
+    return mapId(item.toJSON()) as unknown as GalleryItem;
+  }
+
+  async deleteGalleryItem(id: string): Promise<void> {
+    await GalleryItemModel.findByIdAndDelete(id);
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -223,6 +244,7 @@ export class MemStorage implements IStorage {
   private departments: Map<string, Department>;
   private comments: Map<string, Comment>;
   private registrations: Map<string, Registration>;
+  private galleryItems: Map<string, GalleryItem>;
 
   private currentId: { [key: string]: number };
 
@@ -234,7 +256,8 @@ export class MemStorage implements IStorage {
     this.departments = new Map();
     this.comments = new Map();
     this.registrations = new Map();
-    this.currentId = { users: 1, events: 1, programmes: 1, staff: 1, departments: 1, comments: 1, registrations: 1 };
+    this.galleryItems = new Map();
+    this.currentId = { users: 1, events: 1, programmes: 1, staff: 1, departments: 1, comments: 1, registrations: 1, galleryItems: 1 };
   }
 
   private getId(collection: string): string {
@@ -420,6 +443,30 @@ export class MemStorage implements IStorage {
     };
     this.registrations.set(id, registration);
     return registration;
+  }
+
+  // Gallery
+  async getGalleryItems(): Promise<GalleryItem[]> {
+    return Array.from(this.galleryItems.values()).sort(
+      (a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)
+    );
+  }
+
+  async createGalleryItem(insertItem: InsertGalleryItem): Promise<GalleryItem> {
+    const id = this.getId("galleryItems");
+    const item: GalleryItem = {
+      ...insertItem,
+      id,
+      caption: insertItem.caption ?? null,
+      eventTag: insertItem.eventTag ?? null,
+      createdAt: new Date()
+    };
+    this.galleryItems.set(id, item);
+    return item;
+  }
+
+  async deleteGalleryItem(id: string): Promise<void> {
+    this.galleryItems.delete(id);
   }
 }
 
