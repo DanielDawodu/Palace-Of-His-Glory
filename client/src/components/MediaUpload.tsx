@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, X, Video as VideoIcon } from "lucide-react";
+import { uploadDirectToCloudinary } from "@/lib/cloudinary-upload";
 
 interface MediaUploadProps {
     value: string;
@@ -13,7 +14,7 @@ export function MediaUpload({ value, mediaType, onChange }: MediaUploadProps) {
     const [uploading, setUploading] = useState(false);
     const { toast } = useToast();
 
-    const maxSizeMb = mediaType === "video" ? 100 : 5;
+    const maxSizeMb = mediaType === "video" ? 100 : 10;
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -29,28 +30,9 @@ export function MediaUpload({ value, mediaType, onChange }: MediaUploadProps) {
         }
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append("image", file); // field name matches the shared /api/upload route
-
         try {
-            const res = await fetch("/api/upload", {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!res.ok) {
-                let serverMessage = "Upload failed";
-                try {
-                    const errBody = await res.json();
-                    if (errBody?.message) serverMessage = errBody.message;
-                } catch {
-                    // response wasn't JSON - keep generic message
-                }
-                throw new Error(serverMessage);
-            }
-
-            const data = await res.json();
-            onChange(data.url);
+            const url = await uploadDirectToCloudinary(file, mediaType);
+            onChange(url);
             toast({
                 title: "Success",
                 description: `${mediaType === "video" ? "Video" : "Image"} uploaded successfully`,

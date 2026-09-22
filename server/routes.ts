@@ -6,7 +6,7 @@ import { z } from "zod";
 import session from "express-session";
 import MemoryStoreFactory from "memorystore";
 import MongoStore from "connect-mongo";
-import { upload } from "./cloudinary.js";
+import { upload, cloudinary } from "./cloudinary.js";
 import { connectDB, isDbConnected } from "./db.js";
 import { insertRegistrationSchema, insertEventSchema, insertProgrammeSchema, insertStaffSchema, insertDepartmentSchema, insertGalleryItemSchema } from "../shared/schema.js";
 
@@ -387,6 +387,28 @@ export async function registerRoutes(
 
 
   // Image Upload Route
+  // Signed upload params for direct browser -> Cloudinary uploads.
+  // Vercel's Node.js serverless functions cap request bodies at ~4.5MB, so
+  // routing file bytes through our own /api/upload route (below) silently
+  // fails for any video and for images near that limit. This endpoint lets
+  // the client upload the actual file straight to Cloudinary's API instead -
+  // only this small signed-params exchange touches our serverless function.
+  app.get("/api/cloudinary-signature", requireAuth, (req, res) => {
+    if (!process.env.CLOUDINARY_API_SECRET || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_CLOUD_NAME) {
+      return res.status(500).json({ message: "Cloudinary is not configured on the server" });
+    }
+    const timestamp = Math.round(Date.now() / 1000);
+    const folder = "church-assets";
+    const signature = cloudinary.utils.api_sign_request({ timestamp, folder }, process.env.CLOUDINARY_API_SECRET);
+    res.json({
+      signature,
+      timestamp,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      folder,
+    });
+  });
+
   app.post("/api/upload", requireAuth, (req, res, next) => {
     console.log("📸 Upload request received");
     console.log("User authenticated:", (req.session as any).userId);

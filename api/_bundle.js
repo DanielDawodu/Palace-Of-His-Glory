@@ -39717,6 +39717,21 @@ async function registerRoutes(httpServer2, app2) {
     await storage.deleteGalleryItem(req.params.id);
     res.status(204).send();
   });
+  app2.get("/api/cloudinary-signature", requireAuth, (req, res) => {
+    if (!process.env.CLOUDINARY_API_SECRET || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_CLOUD_NAME) {
+      return res.status(500).json({ message: "Cloudinary is not configured on the server" });
+    }
+    const timestamp = Math.round(Date.now() / 1e3);
+    const folder = "church-assets";
+    const signature = import_cloudinary.v2.utils.api_sign_request({ timestamp, folder }, process.env.CLOUDINARY_API_SECRET);
+    res.json({
+      signature,
+      timestamp,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      folder
+    });
+  });
   app2.post("/api/upload", requireAuth, (req, res, next) => {
     console.log("\u{1F4F8} Upload request received");
     console.log("User authenticated:", req.session.userId);

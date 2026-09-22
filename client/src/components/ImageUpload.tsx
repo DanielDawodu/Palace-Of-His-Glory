@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, X } from "lucide-react";
+import { uploadDirectToCloudinary } from "@/lib/cloudinary-upload";
 
 interface ImageUploadProps {
     value: string;
@@ -17,38 +18,19 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > 10 * 1024 * 1024) {
             toast({
                 title: "File too large",
-                description: "Image must be less than 5MB",
+                description: "Image must be less than 10MB",
                 variant: "destructive",
             });
             return;
         }
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append("image", file);
-
         try {
-            const res = await fetch("/api/upload", {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!res.ok) {
-                let serverMessage = "Upload failed";
-                try {
-                    const errBody = await res.json();
-                    if (errBody?.message) serverMessage = errBody.message;
-                } catch {
-                    // response wasn't JSON (e.g. a platform-level error page) - keep generic message
-                }
-                throw new Error(serverMessage);
-            }
-
-            const data = await res.json();
-            onChange(data.url);
+            const url = await uploadDirectToCloudinary(file, "image");
+            onChange(url);
             toast({
                 title: "Success",
                 description: "Image uploaded successfully",
@@ -98,7 +80,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
                         className="cursor-pointer"
                     />
                     <p className="text-xs text-muted-foreground mt-2">
-                        PNG, JPG or WebP (Max 5MB)
+                        PNG, JPG or WebP (Max 10MB)
                     </p>
                 </div>
             </div>
