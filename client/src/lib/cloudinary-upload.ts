@@ -8,7 +8,7 @@ export async function uploadDirectToCloudinary(
   file: File,
   resourceType: "image" | "video"
 ): Promise<string> {
-  const sigRes = await fetch("/api/cloudinary-signature");
+  const sigRes = await fetch("/api/cloudinary-signature", { credentials: "include" });
   if (!sigRes.ok) {
     let message = "Could not get upload authorization";
     try {
