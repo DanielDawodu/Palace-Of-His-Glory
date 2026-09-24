@@ -92,12 +92,12 @@ export const registrationSchema = insertRegistrationSchema.extend({
   createdAt: z.date().optional(),
 });
 
-// Gallery (photos & videos, admin-posted, shown on a combined Media page)
+// Gallery (photos & videos, admin-posted, grouped by event, shown TikTok-style)
 export const insertGalleryItemSchema = z.object({
   type: z.enum(["image", "video"]),
   mediaUrl: z.string().min(1, "Media URL is required"), // Cloudinary URL for uploads, or a YouTube URL for videos
+  eventId: z.string().min(1, "Event is required"), // references an existing Event's id
   caption: z.string().optional().nullable(),
-  eventTag: z.string().optional().nullable(), // freeform label, e.g. "2026 Annual Convention" - not a hard link to an Event record
 });
 
 export const galleryItemSchema = insertGalleryItemSchema.extend({

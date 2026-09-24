@@ -11,6 +11,7 @@ import About from "@/pages/About";
 import Programmes from "@/pages/Programmes";
 import Events from "@/pages/Events";
 import Gallery from "@/pages/Gallery";
+import GalleryEvent from "@/pages/GalleryEvent";
 import Contact from "@/pages/Contact";
 import Login from "@/pages/Login";
 import Admin from "@/pages/Admin";
@@ -27,6 +28,7 @@ function Router() {
           <Route path="/about" component={About} />
           <Route path="/programmes" component={Programmes} />
           <Route path="/events" component={Events} />
+          <Route path="/gallery/:eventId" component={GalleryEvent} />
           <Route path="/gallery" component={Gallery} />
           <Route path="/contact" component={Contact} />
           <Route path="/login" component={Login} />

@@ -34594,8 +34594,8 @@ var registrationSchema = new import_mongoose.Schema({
 var galleryItemSchema = new import_mongoose.Schema({
   type: { type: String, required: true, enum: ["image", "video"] },
   mediaUrl: { type: String, required: true },
-  caption: { type: String },
-  eventTag: { type: String }
+  eventId: { type: String, required: true },
+  caption: { type: String }
 }, commonSchemaOptions);
 var UserModel = import_mongoose.default.models.User || import_mongoose.default.model("User", userSchema);
 var EventModel = import_mongoose.default.models.Event || import_mongoose.default.model("Event", eventSchema);
@@ -34984,7 +34984,6 @@ var MemStorage = class {
       ...insertItem,
       id,
       caption: insertItem.caption ?? null,
-      eventTag: insertItem.eventTag ?? null,
       createdAt: /* @__PURE__ */ new Date()
     };
     this.galleryItems.set(id, item);
@@ -39136,9 +39135,9 @@ var insertGalleryItemSchema = external_exports.object({
   type: external_exports.enum(["image", "video"]),
   mediaUrl: external_exports.string().min(1, "Media URL is required"),
   // Cloudinary URL for uploads, or a YouTube URL for videos
-  caption: external_exports.string().optional().nullable(),
-  eventTag: external_exports.string().optional().nullable()
-  // freeform label, e.g. "2026 Annual Convention" - not a hard link to an Event record
+  eventId: external_exports.string().min(1, "Event is required"),
+  // references an existing Event's id
+  caption: external_exports.string().optional().nullable()
 });
 var galleryItemSchema2 = insertGalleryItemSchema.extend({
   id: external_exports.string(),

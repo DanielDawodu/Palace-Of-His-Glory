@@ -70,8 +70,8 @@ const registrationSchema = new Schema({
 const galleryItemSchema = new Schema({
   type: { type: String, required: true, enum: ["image", "video"] },
   mediaUrl: { type: String, required: true },
+  eventId: { type: String, required: true },
   caption: { type: String },
-  eventTag: { type: String },
 }, commonSchemaOptions);
 
 // Check if models exist before creating them to avoid overwrite errors during hot reload

@@ -458,7 +458,6 @@ export class MemStorage implements IStorage {
       ...insertItem,
       id,
       caption: insertItem.caption ?? null,
-      eventTag: insertItem.eventTag ?? null,
       createdAt: new Date()
     };
     this.galleryItems.set(id, item);
